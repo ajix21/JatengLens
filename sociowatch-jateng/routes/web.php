@@ -11,8 +11,11 @@ use App\Http\Controllers\RegionController;
 Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
 Route::prefix('map')->name('map.')->group(function () {
-    Route::get('/', [MapController::class, 'index'])->name('index');
-    Route::get('/data', [MapController::class, 'data'])->name('data');
+    Route::get('/',              [MapController::class, 'index'])->name('index');
+    // JSON API endpoints untuk Leaflet layers
+    Route::get('/markers',       [MapController::class, 'markers'])->name('markers');
+    Route::get('/choropleth',    [MapController::class, 'choropleth'])->name('choropleth');
+    Route::get('/region/{id}',   [MapController::class, 'regionAccounts'])->name('region');
 });
 
 Route::resource('accounts', AccountController::class);

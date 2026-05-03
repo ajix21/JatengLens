@@ -216,9 +216,13 @@
 
 @push('scripts')
 <script>
-const GEOJSON_URL = '{{ asset("geojson/jawa-tengah.geojson") }}';
-const MAP_DATA_URL = '{{ route("map.data") }}';
-const INIT_REGION_ID = '{{ request("region_id") }}';
+// ── API endpoints (Tahap 6) ──────────────────────────────────
+const GEOJSON_URL       = '{{ asset("geojson/jawa-tengah.geojson") }}';
+const URL_MARKERS       = '{{ route("map.markers") }}';
+const URL_CHOROPLETH    = '{{ route("map.choropleth") }}';
+const URL_REGION        = '{{ url("map/region") }}'; // + /{id}
+const INIT_REGION_ID    = '{{ request("region_id") }}';
+// ─────────────────────────────────────────────────────────────
 
 function mapApp() {
     return {
@@ -226,7 +230,9 @@ function mapApp() {
         filterOpen: true,
         loading: false,
         accountCount: 0,
-        selectedRegion: null,
+        selectedRegion: null,       // data wilayah yg diklik (choropleth)
+        selectedRegionAccounts: [], // akun di wilayah tsb (dari /map/region/{id})
+        regionLoading: false,
         choroplethMetric: 'accounts',
         filters: {
             categories: [],
@@ -239,115 +245,144 @@ function mapApp() {
         markerLayer: null,
         choroplethLayer: null,
         geojsonData: null,
-        regionStats: [],
+        regionStats: [],            // dari /map/choropleth
 
         get activeFilterCount() {
-            let c = 0;
-            if (this.filters.categories.length) c++;
-            if (this.filters.platforms.length) c++;
-            if (this.filters.region_id) c++;
-            if (this.filters.min_followers) c++;
-            if (this.filters.max_followers) c++;
-            return c;
+            return [
+                this.filters.categories.length > 0,
+                this.filters.platforms.length > 0,
+                !!this.filters.region_id,
+                !!this.filters.min_followers,
+                !!this.filters.max_followers,
+            ].filter(Boolean).length;
         },
 
+        // ── init ────────────────────────────────────────────
         init() {
             this.map = L.map('mainMap', {
                 center: [-7.150975, 110.140259],
-                zoom: 8,
-                minZoom: 7,
-                maxZoom: 15,
+                zoom: 8, minZoom: 7, maxZoom: 15,
             });
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
+                attribution: '© OpenStreetMap contributors',
             }).addTo(this.map);
 
             this.markerLayer = L.markerClusterGroup({
                 maxClusterRadius: 50,
                 showCoverageOnHover: false,
-                iconCreateFunction: function(cluster) {
-                    const count = cluster.getChildCount();
+                iconCreateFunction(cluster) {
+                    const n = cluster.getChildCount();
                     return L.divIcon({
-                        html: `<div style="background:#4F46E5;color:white;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.3)">${count}</div>`,
-                        className: '', iconSize: [36, 36]
+                        html: `<div style="background:#4F46E5;color:#fff;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;box-shadow:0 3px 8px rgba(79,70,229,.5)">${n}</div>`,
+                        className: '', iconSize: [34, 34],
                     });
-                }
+                },
             });
 
-            // Load GeoJSON for choropleth
+            // GeoJSON pre-load untuk choropleth
             fetch(GEOJSON_URL)
                 .then(r => r.json())
                 .then(data => { this.geojsonData = data; })
                 .catch(e => console.warn('GeoJSON load failed:', e));
 
-            this.loadData();
+            this.loadMarkers(); // default mode = marker
         },
 
-        async loadData() {
-            this.loading = true;
-            const params = new URLSearchParams();
-            this.filters.categories.forEach(c => params.append('categories[]', c));
-            this.filters.platforms.forEach(p => params.append('platforms[]', p));
-            if (this.filters.region_id) params.set('region_id', this.filters.region_id);
-            if (this.filters.min_followers) params.set('min_followers', this.filters.min_followers);
-            if (this.filters.max_followers) params.set('max_followers', this.filters.max_followers);
+        // ── buildParams — helper query string ───────────────
+        buildParams(extra = {}) {
+            const p = new URLSearchParams();
+            this.filters.categories.forEach(c => p.append('categories[]', c));
+            this.filters.platforms.forEach(pl => p.append('platforms[]', pl));
+            if (this.filters.region_id)    p.set('region_id', this.filters.region_id);
+            if (this.filters.min_followers) p.set('min_followers', this.filters.min_followers);
+            if (this.filters.max_followers) p.set('max_followers', this.filters.max_followers);
+            Object.entries(extra).forEach(([k, v]) => p.set(k, v));
+            return p;
+        },
 
+        // ── GET /map/markers ─────────────────────────────────
+        async loadMarkers() {
+            this.loading = true;
             try {
-                const res = await fetch(`${MAP_DATA_URL}?${params}`);
+                const res  = await fetch(`${URL_MARKERS}?${this.buildParams()}`);
                 const data = await res.json();
-                this.regionStats = data.region_stats;
-                this.renderCurrentMode(data.accounts);
-                this.accountCount = data.accounts.length;
-            } catch(e) {
-                console.error('Map data load failed:', e);
+                this.accountCount = data.count;
+                this.renderMarkers(data.markers);
+            } catch (e) {
+                console.error('Markers fetch failed:', e);
             } finally {
                 this.loading = false;
             }
         },
 
-        renderCurrentMode(accounts) {
-            if (this.mode === 'marker') {
-                this.renderMarkers(accounts);
-            } else {
+        // ── GET /map/choropleth ──────────────────────────────
+        async loadChoropleth() {
+            this.loading = true;
+            try {
+                const params = this.buildParams({ metric: this.choroplethMetric });
+                const res    = await fetch(`${URL_CHOROPLETH}?${params}`);
+                const data   = await res.json();
+                this.regionStats  = data.regions;
+                this.accountCount = data.regions.reduce((s, r) => s + r.account_count, 0);
                 this.renderChoropleth();
+            } catch (e) {
+                console.error('Choropleth fetch failed:', e);
+            } finally {
+                this.loading = false;
             }
         },
 
-        renderMarkers(accounts) {
-            // Clear choropleth
+        // ── GET /map/region/{id} ─────────────────────────────
+        async loadRegionAccounts(regionId) {
+            this.regionLoading = true;
+            try {
+                const res  = await fetch(`${URL_REGION}/${regionId}`);
+                const data = await res.json();
+                this.selectedRegionAccounts = data.accounts;
+            } catch (e) {
+                console.error('Region accounts fetch failed:', e);
+            } finally {
+                this.regionLoading = false;
+            }
+        },
+
+        // ── render: Marker Map ───────────────────────────────
+        renderMarkers(markers) {
             if (this.choroplethLayer) { this.map.removeLayer(this.choroplethLayer); this.choroplethLayer = null; }
             this.markerLayer.clearLayers();
 
-            accounts.forEach(acc => {
+            const platEmoji = { instagram:'📷', twitter:'🐦', facebook:'👤', tiktok:'🎵', youtube:'▶️' };
+
+            markers.forEach(acc => {
                 if (!acc.region) return;
                 const color = acc.category?.color ?? '#6366f1';
-                const platIcons = {instagram:'📷',twitter:'🐦',facebook:'👤',tiktok:'🎵',youtube:'▶️'};
-                const platIcon = platIcons[acc.platform] || '🌐';
-
-                const icon = L.divIcon({
-                    html: `<div style="background:${color};width:14px;height:14px;border-radius:50%;border:2.5px solid white;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>`,
-                    className: '', iconSize: [14, 14], iconAnchor: [7, 7]
+                const icon  = L.divIcon({
+                    html: `<div style="background:${color};width:14px;height:14px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45)"></div>`,
+                    className: '', iconSize: [14, 14], iconAnchor: [7, 7],
                 });
-
-                const adminNames = (acc.admins || []).join(', ') || '-';
+                const admNames = (acc.admins ?? []).join(', ') || '-';
                 const popup = `
-                    <div style="min-width:200px;font-family:sans-serif">
-                        <div style="font-weight:600;font-size:14px;margin-bottom:4px">${platIcon} @${acc.username}</div>
-                        <div style="font-size:12px;color:#555;margin-bottom:6px">${acc.display_name}</div>
-                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-                            <span style="background:${color};color:white;padding:2px 8px;border-radius:9999px;font-size:11px">${acc.category?.name ?? '-'}</span>
-                            <span style="background:#f3f4f6;padding:2px 8px;border-radius:9999px;font-size:11px">${acc.platform}</span>
+                    <div style="min-width:210px;font-family:system-ui,sans-serif">
+                        <div style="font-weight:700;font-size:13px;margin-bottom:3px">
+                            ${platEmoji[acc.platform]??'🌐'} @${acc.username}
                         </div>
-                        <div style="font-size:12px;color:#444">
+                        <div style="font-size:11px;color:#6b7280;margin-bottom:7px">${acc.display_name}</div>
+                        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px">
+                            <span style="background:${color};color:#fff;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:600">${acc.category?.name??'-'}</span>
+                            <span style="background:#f1f5f9;color:#475569;padding:2px 7px;border-radius:999px;font-size:10px;text-transform:capitalize">${acc.platform}</span>
+                        </div>
+                        <div style="font-size:11px;color:#374151;line-height:1.6">
                             <div><b>Followers:</b> ${this.formatNum(acc.followers_count)}</div>
-                            <div><b>Wilayah:</b> ${acc.region?.name ?? '-'}</div>
-                            <div><b>Admin:</b> ${adminNames}</div>
+                            <div><b>Wilayah:</b> ${acc.region.name}</div>
+                            <div><b>Admin:</b> ${admNames}</div>
                         </div>
-                        <a href="/accounts/${acc.id}" style="display:block;margin-top:8px;text-align:center;background:#4F46E5;color:white;padding:4px;border-radius:6px;font-size:11px;text-decoration:none">Lihat Detail</a>
+                        <a href="/accounts/${acc.id}"
+                           style="display:block;margin-top:8px;text-align:center;background:#4F46E5;color:#fff;padding:5px;border-radius:7px;font-size:11px;font-weight:600;text-decoration:none">
+                           Lihat Detail →
+                        </a>
                     </div>`;
-
                 const m = L.marker([acc.region.latitude, acc.region.longitude], { icon });
-                m.bindPopup(popup, { maxWidth: 260 });
+                m.bindPopup(popup, { maxWidth: 270 });
                 this.markerLayer.addLayer(m);
             });
 
@@ -356,98 +391,88 @@ function mapApp() {
             }
         },
 
+        // ── render: Choropleth ───────────────────────────────
         renderChoropleth() {
-            if (this.markerLayer) { this.map.removeLayer(this.markerLayer); }
+            if (this.markerLayer) this.map.removeLayer(this.markerLayer);
             if (this.choroplethLayer) { this.map.removeLayer(this.choroplethLayer); this.choroplethLayer = null; }
-            if (!this.geojsonData) { console.warn('GeoJSON not loaded yet'); return; }
+            if (!this.geojsonData)    { console.warn('GeoJSON not loaded yet'); return; }
 
-            const stats = {};
-            this.regionStats.forEach(r => { stats[r.geojson_key] = r; });
+            // index region stats by geojson_key
+            const byKey = {};
+            this.regionStats.forEach(r => { byKey[r.geojson_key] = r; });
 
             const metric = this.choroplethMetric;
-            const values = this.regionStats.map(r => metric === 'accounts' ? r.account_count : r.total_followers).filter(v => v > 0);
-            const maxVal = values.length ? Math.max(...values) : 1;
+            const vals   = this.regionStats.map(r => metric === 'accounts' ? r.account_count : r.total_followers).filter(v => v > 0);
+            const maxVal = vals.length ? Math.max(...vals) : 1;
 
-            const getColor = (val) => {
-                if (!val) return '#f8f9fa';
-                const ratio = val / maxVal;
-                if (ratio < 0.2)  return '#fff3cd';
-                if (ratio < 0.4)  return '#ffc107';
-                if (ratio < 0.6)  return '#fd7e14';
-                if (ratio < 0.8)  return '#dc3545';
-                return '#6f0000';
+            const getColor = v => {
+                if (!v) return '#f1f5f9';
+                const t = v / maxVal;
+                if (t < 0.2) return '#fef9c3';
+                if (t < 0.4) return '#fde047';
+                if (t < 0.6) return '#f97316';
+                if (t < 0.8) return '#dc2626';
+                return '#7f1d1d';
             };
 
             const self = this;
             this.choroplethLayer = L.geoJSON(this.geojsonData, {
-                style: function(feature) {
-                    const key = feature.properties.KABKOT || feature.properties.GEO_KEY || feature.properties.name?.toUpperCase() || '';
-                    const regionStat = stats[key];
-                    const val = regionStat ? (metric === 'accounts' ? regionStat.account_count : regionStat.total_followers) : 0;
-                    return {
-                        fillColor: getColor(val),
-                        weight: 1.5,
-                        color: '#999',
-                        fillOpacity: 0.75,
-                    };
+                style(feature) {
+                    const key  = feature.properties.KABKOT ?? feature.properties.GEO_KEY ?? (feature.properties.name ?? '').toUpperCase();
+                    const stat = byKey[key];
+                    const val  = stat ? (metric === 'accounts' ? stat.account_count : stat.total_followers) : 0;
+                    return { fillColor: getColor(val), weight: 1.5, color: '#94a3b8', fillOpacity: 0.78 };
                 },
-                onEachFeature: function(feature, layer) {
-                    const key = feature.properties.KABKOT || feature.properties.GEO_KEY || feature.properties.name?.toUpperCase() || '';
-                    const regionStat = stats[key];
-
+                onEachFeature(feature, layer) {
+                    const key  = feature.properties.KABKOT ?? feature.properties.GEO_KEY ?? (feature.properties.name ?? '').toUpperCase();
+                    const stat = byKey[key];
                     layer.on({
-                        mouseover: function(e) {
-                            e.target.setStyle({ weight: 2.5, color: '#4F46E5', fillOpacity: 0.9 });
+                        mouseover(e) {
+                            e.target.setStyle({ weight: 2.5, color: '#4F46E5', fillOpacity: 0.92 });
                             if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) e.target.bringToFront();
-
-                            const name = regionStat?.name ?? feature.properties.name ?? key;
-                            const accounts = regionStat?.account_count ?? 0;
-                            const followers = self.formatNum(regionStat?.total_followers ?? 0);
-                            layer.bindTooltip(
-                                `<b>${name}</b><br>Akun: ${accounts} | Followers: ${followers}`,
-                                { sticky: true, className: 'choropleth-tooltip' }
-                            ).openTooltip();
+                            const name  = stat?.name ?? feature.properties.name ?? key;
+                            const n     = stat?.account_count ?? 0;
+                            const f     = self.formatNum(stat?.total_followers ?? 0);
+                            layer.bindTooltip(`<b>${name}</b><br>Akun: <b>${n}</b> · Followers: <b>${f}</b>`,
+                                { sticky: true, className: 'choropleth-tooltip' }).openTooltip();
                         },
-                        mouseout: function(e) {
-                            self.choroplethLayer.resetStyle(e.target);
-                        },
-                        click: function() {
-                            if (regionStat) {
-                                // Find region id from stats
-                                self.selectedRegion = { ...regionStat };
+                        mouseout(e) { self.choroplethLayer.resetStyle(e.target); },
+                        // klik wilayah → ambil daftar akun via /map/region/{id}
+                        click() {
+                            if (stat) {
+                                self.selectedRegion = { ...stat };
+                                self.selectedRegionAccounts = [];
+                                self.loadRegionAccounts(stat.id);
                             }
-                        }
+                        },
                     });
-                }
+                },
             }).addTo(this.map);
         },
 
+        // ── actions ──────────────────────────────────────────
         applyFilters() {
-            this.loadData();
+            this.mode === 'marker' ? this.loadMarkers() : this.loadChoropleth();
         },
 
         resetFilters() {
             this.filters = { categories: [], platforms: [], region_id: '', min_followers: '', max_followers: '' };
-            this.loadData();
+            this.applyFilters();
         },
 
         switchMode(mode) {
             this.mode = mode;
             this.selectedRegion = null;
-            if (mode === 'choropleth') {
-                this.renderChoropleth();
-            } else {
-                // Re-fetch to restore marker mode
-                this.loadData();
-            }
+            this.selectedRegionAccounts = [];
+            mode === 'choropleth' ? this.loadChoropleth() : this.loadMarkers();
         },
 
         formatNum(n) {
             if (!n) return '0';
-            if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
-            if (n >= 1000) return (n/1000).toFixed(1) + 'K';
-            return n.toString();
-        }
+            if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+            if (n >= 1_000)     return (n / 1_000).toFixed(1) + 'K';
+            return String(n);
+        },
     }
 }
 </script>
