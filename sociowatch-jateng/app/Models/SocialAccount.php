@@ -50,4 +50,19 @@ class SocialAccount extends Model
     {
         return $this->hasMany(ActivityLog::class);
     }
+
+    public function followerSnapshots(): HasMany
+    {
+        return $this->hasMany(FollowerSnapshot::class)->orderBy('recorded_at');
+    }
+
+    public function alerts(): HasMany
+    {
+        return $this->hasMany(Alert::class)->orderByDesc('triggered_at');
+    }
+
+    public function alertSetting()
+    {
+        return $this->hasOne(AlertSetting::class);
+    }
 }

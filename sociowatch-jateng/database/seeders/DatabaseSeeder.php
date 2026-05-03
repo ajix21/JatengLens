@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             CategorySeeder::class,
             SocialAccountSeeder::class,
             UserSeeder::class,
+            SnapshotSeeder::class,
         ]);
     }
 }

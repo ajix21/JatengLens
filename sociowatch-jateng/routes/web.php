@@ -10,6 +10,9 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\RegionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ExportController;
+use App\Http\Controllers\AlertController;
+use App\Http\Controllers\ImportController;
+use App\Http\Controllers\AnalyticsController;
 
 // ── Auth (guest only) ────────────────────────────────────────────────────────
 Route::middleware('guest')->group(function () {
@@ -56,4 +59,36 @@ Route::middleware('auth')->group(function () {
         Route::get('/regions/pdf',  [ExportController::class, 'regionsPdf'])->name('regions.pdf');
         Route::get('/map',          [ExportController::class, 'mapExcel'])->name('map');
     });
+
+    // Alert routes
+    Route::prefix('alerts')->name('alerts.')->group(function () {
+        Route::get('/',                             [AlertController::class, 'index'])->name('index');
+        Route::post('/read-all',                    [AlertController::class, 'readAll'])->name('read-all');
+        Route::post('/{alert}/read',                [AlertController::class, 'markRead'])->name('read');
+        Route::get('/settings',                     [AlertController::class, 'settings'])->name('settings');
+        Route::post('/settings',                    [AlertController::class, 'saveSettings'])->name('settings.save');
+        Route::post('/settings/account/{account}',  [AlertController::class, 'saveAccountSetting'])->name('settings.account');
+    });
+    Route::get('/api/alerts/unread', [AlertController::class, 'unread'])->name('api.alerts.unread');
+
+    // Import routes
+    Route::prefix('accounts')->name('accounts.')->group(function () {
+        Route::get('/import',         [ImportController::class, 'index'])->name('import');
+        Route::get('/import/template',[ImportController::class, 'downloadTemplate'])->name('import.template');
+        Route::post('/import/preview',[ImportController::class, 'preview'])->name('import.preview');
+        Route::post('/import',        [ImportController::class, 'import'])->name('import.process');
+    });
+
+    // Analytics
+    Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics');
+
+    // API Token management (superadmin only)
+    Route::middleware('can:manage-users')->group(function () {
+        Route::get('/settings/api-tokens',         [\App\Http\Controllers\ApiTokenController::class, 'index'])->name('api-tokens.index');
+        Route::post('/settings/api-tokens',        [\App\Http\Controllers\ApiTokenController::class, 'store'])->name('api-tokens.store');
+        Route::delete('/settings/api-tokens/{id}', [\App\Http\Controllers\ApiTokenController::class, 'destroy'])->name('api-tokens.destroy');
+    });
+
+    // Quick stats update
+    Route::post('/accounts/{account}/update-stats', [AccountController::class, 'updateStats'])->name('accounts.update-stats');
 });

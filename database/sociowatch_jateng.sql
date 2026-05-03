@@ -214,7 +214,79 @@ CREATE TABLE IF NOT EXISTS `user_activity_logs` (
     FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 15. migrations (table Laravel internal)
+-- 15. follower_snapshots
+CREATE TABLE IF NOT EXISTS `follower_snapshots` (
+  `id`                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `social_account_id` BIGINT UNSIGNED NOT NULL,
+  `followers_count`   BIGINT          NOT NULL DEFAULT 0,
+  `following_count`   BIGINT          NOT NULL DEFAULT 0,
+  `post_count`        INT             NOT NULL DEFAULT 0,
+  `recorded_at`       TIMESTAMP       NOT NULL,
+  `created_at`        TIMESTAMP       NULL,
+  `updated_at`        TIMESTAMP       NULL,
+  PRIMARY KEY (`id`),
+  INDEX `follower_snapshots_account_recorded_idx` (`social_account_id`, `recorded_at`),
+  CONSTRAINT `fk_snapshot_account` FOREIGN KEY (`social_account_id`)
+    REFERENCES `social_accounts` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 16. alerts
+CREATE TABLE IF NOT EXISTS `alerts` (
+  `id`                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `social_account_id` BIGINT UNSIGNED NOT NULL,
+  `alert_type`        ENUM('spike_up','spike_down','milestone') NOT NULL,
+  `threshold_value`   BIGINT          NOT NULL DEFAULT 0,
+  `current_value`     BIGINT          NOT NULL DEFAULT 0,
+  `change_percent`    DECIMAL(5,2)    NOT NULL DEFAULT 0,
+  `message`           TEXT            NOT NULL,
+  `is_read`           TINYINT(1)      NOT NULL DEFAULT 0,
+  `triggered_at`      TIMESTAMP       NOT NULL,
+  `created_at`        TIMESTAMP       NULL,
+  `updated_at`        TIMESTAMP       NULL,
+  PRIMARY KEY (`id`),
+  INDEX `alerts_is_read_triggered_idx` (`is_read`, `triggered_at`),
+  CONSTRAINT `fk_alert_account` FOREIGN KEY (`social_account_id`)
+    REFERENCES `social_accounts` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 17. alert_settings
+CREATE TABLE IF NOT EXISTS `alert_settings` (
+  `id`                    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `social_account_id`     BIGINT UNSIGNED NULL UNIQUE,
+  `spike_up_threshold`    DECIMAL(5,2)    NOT NULL DEFAULT 10.00,
+  `spike_down_threshold`  DECIMAL(5,2)    NOT NULL DEFAULT 10.00,
+  `milestone_values`      JSON            NULL,
+  `is_active`             TINYINT(1)      NOT NULL DEFAULT 1,
+  `created_at`            TIMESTAMP       NULL,
+  `updated_at`            TIMESTAMP       NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_alertsetting_account` FOREIGN KEY (`social_account_id`)
+    REFERENCES `social_accounts` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Insert default global alert setting (social_account_id = NULL)
+INSERT IGNORE INTO `alert_settings`
+  (`social_account_id`, `spike_up_threshold`, `spike_down_threshold`, `milestone_values`, `is_active`, `created_at`, `updated_at`)
+VALUES
+  (NULL, 10.00, 10.00, '[1000, 5000, 10000, 50000, 100000]', 1, NOW(), NOW());
+
+-- 18. personal_access_tokens (Laravel Sanctum)
+CREATE TABLE IF NOT EXISTS `personal_access_tokens` (
+  `id`             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `tokenable_type` VARCHAR(255)    NOT NULL,
+  `tokenable_id`   BIGINT UNSIGNED NOT NULL,
+  `name`           VARCHAR(255)    NOT NULL,
+  `token`          VARCHAR(64)     NOT NULL UNIQUE,
+  `abilities`      TEXT            NULL,
+  `last_used_at`   TIMESTAMP       NULL,
+  `expires_at`     TIMESTAMP       NULL,
+  `created_at`     TIMESTAMP       NULL,
+  `updated_at`     TIMESTAMP       NULL,
+  PRIMARY KEY (`id`),
+  INDEX `personal_access_tokens_tokenable_type_tokenable_id_index` (`tokenable_type`, `tokenable_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 19. migrations (table Laravel internal)
 CREATE TABLE IF NOT EXISTS `migrations` (
   `id`        INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `migration` VARCHAR(255) NOT NULL,
@@ -336,7 +408,11 @@ INSERT INTO `migrations` (`migration`, `batch`) VALUES
 ('2026_05_02_203809_create_account_admins_table',         1),
 ('2026_05_02_203809_create_activity_logs_table',          1),
 ('2026_05_03_101319_add_role_to_users_table',             2),
-('2026_05_03_101319_create_user_activity_logs_table',     2);
+('2026_05_03_101319_create_user_activity_logs_table',     2),
+('2026_05_03_143546_create_follower_snapshots_table',     3),
+('2026_05_03_143547_create_alerts_table',                 3),
+('2026_05_03_143547_create_alert_settings_table',         3),
+('2026_05_03_144509_create_personal_access_tokens_table', 3);
 
 SET foreign_key_checks = 1;
 

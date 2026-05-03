@@ -96,10 +96,35 @@ class AccountController extends Controller
 
     public function show(SocialAccount $account)
     {
-        $account->load(['category', 'region', 'admins', 'activityLogs' => function ($q) {
+        $account->load(['category', 'region', 'admins', 'alertSetting', 'activityLogs' => function ($q) {
             $q->latest('logged_at')->take(20);
         }]);
-        return view('accounts.show', compact('account'));
+
+        $snapshots30 = $account->followerSnapshots()
+            ->where('recorded_at', '>=', now()->subDays(30))
+            ->orderBy('recorded_at')
+            ->get(['recorded_at', 'followers_count']);
+
+        $snap7dAgo  = $account->followerSnapshots()
+            ->where('recorded_at', '<=', now()->subDays(7))
+            ->orderByDesc('recorded_at')->first();
+        $snap30dAgo = $account->followerSnapshots()
+            ->where('recorded_at', '<=', now()->subDays(30))
+            ->orderByDesc('recorded_at')->first();
+
+        $change7d  = $snap7dAgo  && $snap7dAgo->followers_count  > 0
+            ? round(($account->followers_count - $snap7dAgo->followers_count)  / $snap7dAgo->followers_count  * 100, 2)
+            : null;
+        $change30d = $snap30dAgo && $snap30dAgo->followers_count > 0
+            ? round(($account->followers_count - $snap30dAgo->followers_count) / $snap30dAgo->followers_count * 100, 2)
+            : null;
+
+        $recentAlerts = $account->alerts()->take(5)->get();
+        $globalSetting = \App\Models\AlertSetting::global();
+
+        return view('accounts.show', compact(
+            'account', 'snapshots30', 'change7d', 'change30d', 'recentAlerts', 'globalSetting'
+        ));
     }
 
     public function edit(SocialAccount $account)
@@ -150,5 +175,63 @@ class AccountController extends Controller
         $this->logActivity('delete', 'SocialAccount', $id);
         return redirect()->route('accounts.index')
             ->with('success', 'Akun berhasil dihapus.');
+    }
+
+    public function updateStats(Request $request, SocialAccount $account)
+    {
+        $data = $request->validate([
+            'followers_count' => 'required|integer|min:0',
+            'following_count' => 'nullable|integer|min:0',
+            'post_count'      => 'nullable|integer|min:0',
+        ]);
+
+        $prev = $account->followers_count;
+        $account->update($data);
+
+        \App\Models\FollowerSnapshot::create([
+            'social_account_id' => $account->id,
+            'followers_count'   => $account->followers_count,
+            'following_count'   => $account->following_count,
+            'post_count'        => $account->post_count,
+            'recorded_at'       => now(),
+        ]);
+
+        // Check alerts
+        if ($prev > 0) {
+            $pct     = round(($account->followers_count - $prev) / $prev * 100, 2);
+            $setting = $account->alertSetting ?? \App\Models\AlertSetting::global();
+            if ($setting->is_active) {
+                if ($pct >= (float) $setting->spike_up_threshold) {
+                    \App\Models\Alert::create([
+                        'social_account_id' => $account->id,
+                        'alert_type'        => 'spike_up',
+                        'threshold_value'   => (int) $setting->spike_up_threshold,
+                        'current_value'     => $account->followers_count,
+                        'change_percent'    => $pct,
+                        'message'           => "{$account->username} naik {$pct}% → ".number_format($account->followers_count)." followers",
+                        'is_read'           => false,
+                        'triggered_at'      => now(),
+                    ]);
+                } elseif ($pct <= -(float) $setting->spike_down_threshold) {
+                    \App\Models\Alert::create([
+                        'social_account_id' => $account->id,
+                        'alert_type'        => 'spike_down',
+                        'threshold_value'   => (int) $setting->spike_down_threshold,
+                        'current_value'     => $account->followers_count,
+                        'change_percent'    => abs($pct),
+                        'message'           => "{$account->username} turun ".abs($pct)."% → ".number_format($account->followers_count)." followers",
+                        'is_read'           => false,
+                        'triggered_at'      => now(),
+                    ]);
+                }
+            }
+        }
+
+        $this->logActivity('update_stats', 'SocialAccount', $account->id);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'followers_count' => $account->followers_count]);
+        }
+        return back()->with('success', 'Statistik berhasil diperbarui.');
     }
 }

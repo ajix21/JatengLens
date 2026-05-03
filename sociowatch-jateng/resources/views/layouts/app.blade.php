@@ -182,6 +182,32 @@
                 <span x-show="sidebar">Admin Akun</span>
             </a>
 
+            {{-- Section: Monitoring --}}
+            <div class="nav-section" x-show="sidebar">Monitoring</div>
+
+            <a href="{{ route('analytics') }}"
+               class="nav-link {{ request()->routeIs('analytics') ? 'active' : '' }}">
+                <i class="fas fa-chart-line nav-icon"></i>
+                <span x-show="sidebar">Analytics</span>
+            </a>
+
+            <a href="{{ route('alerts.index') }}"
+               class="nav-link {{ request()->routeIs('alerts.*') ? 'active' : '' }}">
+                <i class="fas fa-bell nav-icon"></i>
+                <span x-show="sidebar" class="flex-1">Notifikasi</span>
+                @php $unread = \App\Models\Alert::where('is_read', false)->count(); @endphp
+                @if($unread > 0)
+                <span x-show="sidebar" class="text-white text-[0.6rem] font-bold px-1.5 py-0.5 rounded-full"
+                      style="background:#ef4444">{{ $unread > 99 ? '99+' : $unread }}</span>
+                @endif
+            </a>
+
+            <a href="{{ route('accounts.import') }}"
+               class="nav-link {{ request()->routeIs('accounts.import*') ? 'active' : '' }}">
+                <i class="fas fa-file-import nav-icon"></i>
+                <span x-show="sidebar">Import Akun</span>
+            </a>
+
             {{-- Section: Sistem --}}
             <div class="nav-section" x-show="sidebar">Info Sistem</div>
 
@@ -204,6 +230,12 @@
                class="nav-link {{ request()->routeIs('users.activity-log') ? 'active' : '' }}">
                 <i class="fas fa-clipboard-list nav-icon"></i>
                 <span x-show="sidebar">Log Aktivitas</span>
+            </a>
+
+            <a href="{{ route('api-tokens.index') }}"
+               class="nav-link {{ request()->routeIs('api-tokens.*') ? 'active' : '' }}">
+                <i class="fas fa-key nav-icon"></i>
+                <span x-show="sidebar">API Tokens</span>
             </a>
             @endcan
 
@@ -263,6 +295,81 @@
                      style="background:#f0fdf4; color:#166534; border:1px solid #bbf7d0;">
                     <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                     Sistem Aktif
+                </div>
+
+                {{-- Bell notification --}}
+                <div x-data="bellNotif()" x-init="init()" class="relative">
+                    <button @click="open = !open; if(open) fetchAlerts()"
+                            class="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 transition text-slate-500">
+                        <i class="fas fa-bell text-base"></i>
+                        <span x-show="unreadCount > 0" x-cloak
+                              class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-white font-bold"
+                              style="background:#ef4444; font-size:.6rem; padding:0 3px;"
+                              x-text="unreadCount > 99 ? '99+' : unreadCount"></span>
+                    </button>
+
+                    {{-- Dropdown --}}
+                    <div x-show="open" x-cloak @click.outside="open = false"
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 translate-y-1"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         x-transition:leave="transition ease-in duration-100"
+                         x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+                         class="absolute right-0 mt-2 w-80 rounded-xl shadow-xl border overflow-hidden z-50"
+                         style="background:#fff; border-color:#e2e8f0; top:100%">
+
+                        {{-- Header --}}
+                        <div class="flex items-center justify-between px-4 py-3"
+                             style="background:#f8fafc; border-bottom:1px solid #e2e8f0;">
+                            <span class="text-sm font-semibold text-slate-700">Notifikasi</span>
+                            <div class="flex items-center gap-2">
+                                <span x-show="unreadCount > 0" x-cloak
+                                      class="text-xs font-bold px-2 py-0.5 rounded-full text-white"
+                                      style="background:#ef4444;" x-text="unreadCount + ' belum dibaca'"></span>
+                                <a href="{{ route('alerts.index') }}"
+                                   class="text-xs text-indigo-600 font-medium hover:underline">Semua</a>
+                            </div>
+                        </div>
+
+                        {{-- Alert list --}}
+                        <div class="divide-y divide-slate-100 max-h-72 overflow-y-auto">
+                            <template x-if="loading">
+                                <div class="flex items-center justify-center py-8">
+                                    <i class="fas fa-spinner fa-spin text-indigo-500 mr-2"></i>
+                                    <span class="text-xs text-slate-400">Memuat…</span>
+                                </div>
+                            </template>
+                            <template x-if="!loading && alerts.length === 0">
+                                <div class="flex flex-col items-center py-8 text-slate-400">
+                                    <i class="fas fa-bell-slash text-2xl mb-2"></i>
+                                    <span class="text-xs">Tidak ada notifikasi baru</span>
+                                </div>
+                            </template>
+                            <template x-for="alert in alerts" :key="alert.id">
+                                <div class="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition"
+                                     :class="!alert.is_read ? 'bg-indigo-50/60' : ''">
+                                    <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                                         :style="alert.alert_type === 'spike_up' ? 'background:#dcfce7' : (alert.alert_type === 'spike_down' ? 'background:#fee2e2' : 'background:#fef3c7')">
+                                        <i class="fas text-xs"
+                                           :class="alert.alert_type === 'spike_up' ? 'fa-arrow-trend-up text-green-600' : (alert.alert_type === 'spike_down' ? 'fa-arrow-trend-down text-red-600' : 'fa-trophy text-amber-600')"></i>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-xs text-slate-700 leading-snug" x-text="alert.message"></p>
+                                        <p class="text-[0.65rem] text-slate-400 mt-0.5" x-text="alert.triggered_at_human"></p>
+                                    </div>
+                                    <div x-show="!alert.is_read" class="w-2 h-2 rounded-full bg-indigo-500 mt-1 flex-shrink-0"></div>
+                                </div>
+                            </template>
+                        </div>
+
+                        {{-- Footer --}}
+                        <div class="px-4 py-2.5 text-center" style="border-top:1px solid #e2e8f0; background:#f8fafc;">
+                            <a href="{{ route('alerts.index') }}"
+                               class="text-xs text-indigo-600 font-medium hover:underline">
+                                Lihat semua notifikasi →
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- User name + role badge --}}
@@ -347,6 +454,44 @@ function appShell() {
         saveSidebar() {
             localStorage.setItem('sw_sidebar', this.sidebar);
         }
+    }
+}
+
+function bellNotif() {
+    return {
+        open: false,
+        loading: false,
+        unreadCount: 0,
+        alerts: [],
+        pollTimer: null,
+
+        init() {
+            this.fetchCount();
+            this.pollTimer = setInterval(() => this.fetchCount(), 60000);
+        },
+
+        fetchCount() {
+            fetch('{{ route('api.alerts.unread') }}', {
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+            })
+            .then(r => r.json())
+            .then(data => { this.unreadCount = data.count; })
+            .catch(() => {});
+        },
+
+        fetchAlerts() {
+            this.loading = true;
+            fetch('{{ route('api.alerts.unread') }}', {
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                this.unreadCount = data.count;
+                this.alerts = data.alerts;
+            })
+            .catch(() => {})
+            .finally(() => { this.loading = false; });
+        },
     }
 }
 </script>

@@ -143,6 +143,11 @@
                                     <i class="fas fa-eye text-xs"></i>
                                 </a>
                                 @can('can-edit')
+                                <button type="button" title="Update Stats"
+                                        onclick="openStatsModal({{ $acc->id }}, '{{ addslashes($acc->display_name) }}', {{ $acc->followers_count }}, {{ $acc->following_count }}, {{ $acc->post_count }})"
+                                        class="p-1.5 text-green-500 hover:bg-green-50 rounded-lg transition">
+                                    <i class="fas fa-sync-alt text-xs"></i>
+                                </button>
                                 <a href="{{ route('accounts.edit', $acc) }}" title="Edit"
                                    class="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition">
                                     <i class="fas fa-pen text-xs"></i>
@@ -180,4 +185,67 @@
     </div>
 
 </div>
+
+{{-- Update Stats Modal --}}
+@can('can-edit')
+<div id="modalQuickStats" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4"
+     style="background:rgba(0,0,0,.5)">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div>
+                <h3 class="font-semibold text-gray-800 flex items-center gap-2">
+                    <i class="fas fa-sync-alt text-green-500"></i> Update Stats
+                </h3>
+                <p id="modalStatsName" class="text-xs text-gray-400 mt-0.5"></p>
+            </div>
+            <button onclick="document.getElementById('modalQuickStats').classList.add('hidden')"
+                    class="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+        </div>
+        <form id="formQuickStats" method="POST" action="">
+            @csrf
+            <div class="px-6 py-4 space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Followers</label>
+                    <input type="number" name="followers_count" id="statsFollowers" min="0" required
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Following</label>
+                    <input type="number" name="following_count" id="statsFollowing" min="0"
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Postingan</label>
+                    <input type="number" name="post_count" id="statsPost" min="0"
+                           class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                </div>
+            </div>
+            <div class="flex gap-3 px-6 pb-5">
+                <button type="button" onclick="document.getElementById('modalQuickStats').classList.add('hidden')"
+                        class="flex-1 border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium py-2 rounded-lg transition">
+                    Batal
+                </button>
+                <button type="submit"
+                        class="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 rounded-lg transition">
+                    Simpan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endcan
+
 @endsection
+
+@push('scripts')
+<script>
+function openStatsModal(id, name, followers, following, post) {
+    document.getElementById('formQuickStats').action = '/accounts/' + id + '/update-stats';
+    document.getElementById('modalStatsName').textContent = name;
+    document.getElementById('statsFollowers').value = followers;
+    document.getElementById('statsFollowing').value = following;
+    document.getElementById('statsPost').value = post;
+    document.getElementById('modalQuickStats').classList.remove('hidden');
+}
+</script>
+@endpush
