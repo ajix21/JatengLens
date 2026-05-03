@@ -31,6 +31,18 @@
         </div>
     </div>
 
+    {{-- Export buttons --}}
+    <div class="flex items-center justify-end gap-2">
+        <a href="{{ route('export.regions') }}"
+           class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-emerald-700 border border-emerald-200 hover:bg-emerald-50 transition">
+            <i class="fas fa-file-excel"></i> Export Excel
+        </a>
+        <a href="{{ route('export.regions.pdf') }}"
+           class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 transition">
+            <i class="fas fa-file-pdf"></i> Export PDF
+        </a>
+    </div>
+
     {{-- Table --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="overflow-x-auto">

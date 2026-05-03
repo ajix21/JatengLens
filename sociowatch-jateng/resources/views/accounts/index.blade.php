@@ -59,9 +59,23 @@
                     Reset
                 </a>
             </div>
-            <a href="{{ route('accounts.create') }}" class="ml-auto bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2 rounded-lg transition flex items-center gap-2">
-                <i class="fas fa-plus"></i> Tambah Akun
-            </a>
+            {{-- Export buttons --}}
+            <div class="ml-auto flex items-center gap-2">
+                @php $exportParams = http_build_query(array_filter(request()->only(['platform','category_id','region_id','status']))) @endphp
+                <a href="{{ route('export.accounts') }}?{{ $exportParams }}"
+                   class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-emerald-700 border border-emerald-200 hover:bg-emerald-50 transition">
+                    <i class="fas fa-file-excel"></i> Excel
+                </a>
+                <a href="{{ route('export.accounts.pdf') }}?{{ $exportParams }}"
+                   class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 transition">
+                    <i class="fas fa-file-pdf"></i> PDF
+                </a>
+                @can('can-edit')
+                <a href="{{ route('accounts.create') }}" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2 rounded-lg transition flex items-center gap-2">
+                    <i class="fas fa-plus"></i> Tambah Akun
+                </a>
+                @endcan
+            </div>
         </form>
     </div>
 
@@ -128,10 +142,13 @@
                                    class="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-lg transition">
                                     <i class="fas fa-eye text-xs"></i>
                                 </a>
+                                @can('can-edit')
                                 <a href="{{ route('accounts.edit', $acc) }}" title="Edit"
                                    class="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition">
                                     <i class="fas fa-pen text-xs"></i>
                                 </a>
+                                @endcan
+                                @can('can-delete')
                                 <form method="POST" action="{{ route('accounts.destroy', $acc) }}" class="inline"
                                       onsubmit="return confirm('Hapus akun ini?')">
                                     @csrf @method('DELETE')
@@ -140,6 +157,7 @@
                                         <i class="fas fa-trash text-xs"></i>
                                     </button>
                                 </form>
+                                @endcan
                             </div>
                         </td>
                     </tr>

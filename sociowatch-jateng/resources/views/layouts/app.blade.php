@@ -190,6 +190,23 @@
                 <span>35 Kab/Kota · Jawa Tengah</span>
             </div>
 
+            {{-- Superadmin only: user management --}}
+            @can('manage-users')
+            <div class="nav-section" x-show="sidebar">Administrasi</div>
+
+            <a href="{{ route('users.index') }}"
+               class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                <i class="fas fa-user-cog nav-icon"></i>
+                <span x-show="sidebar">Manajemen User</span>
+            </a>
+
+            <a href="{{ route('users.activity-log') }}"
+               class="nav-link {{ request()->routeIs('users.activity-log') ? 'active' : '' }}">
+                <i class="fas fa-clipboard-list nav-icon"></i>
+                <span x-show="sidebar">Log Aktivitas</span>
+            </a>
+            @endcan
+
         </nav>
 
         {{-- ── Collapse button ── --}}
@@ -239,7 +256,7 @@
                 </div>
             </div>
 
-            {{-- Right: status + avatar --}}
+            {{-- Right: user info + logout --}}
             <div class="flex items-center gap-3 flex-shrink-0">
                 {{-- System status --}}
                 <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium"
@@ -248,14 +265,40 @@
                     Sistem Aktif
                 </div>
 
-                {{-- Version tag --}}
-                <div class="hidden lg:block text-xs text-slate-400 font-mono">v1.0</div>
+                {{-- User name + role badge --}}
+                <div class="hidden md:flex items-center gap-2">
+                    <div class="text-right">
+                        <div class="text-xs font-semibold text-slate-700 leading-tight">{{ auth()->user()->name }}</div>
+                        @php
+                            $roleBadge = match(auth()->user()->role) {
+                                'superadmin' => ['bg' => '#fef3c7', 'color' => '#92400e', 'label' => 'SUPERADMIN'],
+                                'admin'      => ['bg' => '#dbeafe', 'color' => '#1e40af', 'label' => 'ADMIN'],
+                                default      => ['bg' => '#f1f5f9', 'color' => '#475569', 'label' => 'VIEWER'],
+                            };
+                        @endphp
+                        <span class="text-[0.6rem] font-bold px-1.5 py-0.5 rounded"
+                              style="background:{{ $roleBadge['bg'] }};color:{{ $roleBadge['color'] }}">
+                            {{ $roleBadge['label'] }}
+                        </span>
+                    </div>
 
-                {{-- Avatar --}}
-                <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                     style="background:linear-gradient(135deg,#4F46E5,#7C3AED)">
-                    <i class="fas fa-user text-white" style="font-size:.65rem"></i>
+                    {{-- Avatar --}}
+                    <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                         style="background:linear-gradient(135deg,#4F46E5,#7C3AED)">
+                        <i class="fas fa-user text-white" style="font-size:.65rem"></i>
+                    </div>
                 </div>
+
+                {{-- Logout --}}
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
+                    <button type="submit"
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 transition"
+                            title="Logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span class="hidden md:inline">Logout</span>
+                    </button>
+                </form>
             </div>
         </header>
 

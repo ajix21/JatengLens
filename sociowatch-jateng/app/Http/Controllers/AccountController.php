@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\LogsActivity;
 use App\Models\Category;
 use App\Models\Region;
 use App\Models\SocialAccount;
@@ -9,6 +10,7 @@ use Illuminate\Http\Request;
 
 class AccountController extends Controller
 {
+    use LogsActivity;
     private array $platforms = ['instagram', 'twitter', 'facebook', 'tiktok', 'youtube'];
 
     private array $rules = [
@@ -86,6 +88,8 @@ class AccountController extends Controller
             }
         }
 
+        $this->logActivity('create', 'SocialAccount', $account->id);
+
         return redirect()->route('accounts.show', $account)
             ->with('success', 'Akun berhasil ditambahkan.');
     }
@@ -133,13 +137,17 @@ class AccountController extends Controller
             }
         }
 
+        $this->logActivity('update', 'SocialAccount', $account->id);
+
         return redirect()->route('accounts.show', $account)
             ->with('success', 'Data akun berhasil diperbarui.');
     }
 
     public function destroy(SocialAccount $account)
     {
+        $id = $account->id;
         $account->delete();
+        $this->logActivity('delete', 'SocialAccount', $id);
         return redirect()->route('accounts.index')
             ->with('success', 'Akun berhasil dihapus.');
     }

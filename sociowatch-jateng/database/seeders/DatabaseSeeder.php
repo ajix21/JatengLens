@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             RegionSeeder::class,
             CategorySeeder::class,
             SocialAccountSeeder::class,
+            UserSeeder::class,
         ]);
     }
 }

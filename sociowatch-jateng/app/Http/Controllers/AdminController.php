@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\LogsActivity;
 use App\Models\AccountAdmin;
 use App\Models\SocialAccount;
 use Illuminate\Http\Request;
 
 class AdminController extends Controller
 {
+    use LogsActivity;
     public function index(Request $request)
     {
         $query = AccountAdmin::with(['socialAccount.category:id,name,color', 'socialAccount.region:id,name']);
@@ -45,7 +47,8 @@ class AdminController extends Controller
             'affiliation'       => 'nullable|string|max:255',
             'notes'             => 'nullable|string',
         ]);
-        AccountAdmin::create($data);
+        $admin = AccountAdmin::create($data);
+        $this->logActivity('create', 'AccountAdmin', $admin->id);
         return redirect()->route('admins.index')
             ->with('success', 'Data admin berhasil ditambahkan.');
     }
@@ -70,13 +73,16 @@ class AdminController extends Controller
             'notes'             => 'nullable|string',
         ]);
         $admin->update($data);
+        $this->logActivity('update', 'AccountAdmin', $admin->id);
         return redirect()->route('admins.index')
             ->with('success', 'Data admin berhasil diperbarui.');
     }
 
     public function destroy(AccountAdmin $admin)
     {
+        $id = $admin->id;
         $admin->delete();
+        $this->logActivity('delete', 'AccountAdmin', $id);
         return redirect()->route('admins.index')
             ->with('success', 'Data admin berhasil dihapus.');
     }

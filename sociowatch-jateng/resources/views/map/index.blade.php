@@ -128,12 +128,20 @@
                 </button>
             </div>
 
-            {{-- Account count badge --}}
-            <div class="text-xs text-gray-500 ml-auto">
-                <span x-show="loading" class="text-indigo-500"><i class="fas fa-spinner fa-spin mr-1"></i>Loading...</span>
-                <span x-show="!loading">
-                    <span class="font-semibold text-gray-700" x-text="accountCount"></span> akun ditampilkan
-                </span>
+            {{-- Account count badge + Export button --}}
+            <div class="flex items-center gap-3 ml-auto">
+                <div class="text-xs text-gray-500">
+                    <span x-show="loading" class="text-indigo-500"><i class="fas fa-spinner fa-spin mr-1"></i>Loading...</span>
+                    <span x-show="!loading">
+                        <span class="font-semibold text-gray-700" x-text="accountCount"></span> akun ditampilkan
+                    </span>
+                </div>
+                {{-- Export Excel button — builds URL from current active filters --}}
+                <button @click="exportMapData()"
+                        x-show="mode === 'marker'"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-emerald-700 border border-emerald-200 hover:bg-emerald-50 transition">
+                    <i class="fas fa-file-excel"></i> Export Data
+                </button>
             </div>
         </div>
 
@@ -458,6 +466,18 @@ function mapApp() {
         resetFilters() {
             this.filters = { categories: [], platforms: [], region_id: '', min_followers: '', max_followers: '' };
             this.applyFilters();
+        },
+
+        exportMapData() {
+            const p = this.buildParams();
+            // Remap param names to match /export/map endpoint
+            const sp = new URLSearchParams();
+            if (this.filters.categories.length) this.filters.categories.forEach(c => sp.append('categories[]', c));
+            if (this.filters.platforms.length)  this.filters.platforms.forEach(p => sp.append('platforms[]', p));
+            if (this.filters.region_id)     sp.set('region_id', this.filters.region_id);
+            if (this.filters.min_followers) sp.set('min_followers', this.filters.min_followers);
+            if (this.filters.max_followers) sp.set('max_followers', this.filters.max_followers);
+            window.location.href = '{{ route("export.map") }}?' + sp.toString();
         },
 
         switchMode(mode) {

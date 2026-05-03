@@ -4,11 +4,13 @@
 
 @section('content')
 <div class="space-y-5">
+    @can('can-edit')
     <div class="flex justify-end">
         <a href="{{ route('categories.create') }}" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2.5 rounded-lg transition flex items-center gap-2">
             <i class="fas fa-plus"></i> Tambah Kategori
         </a>
     </div>
+    @endcan
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         @forelse($categories as $cat)
@@ -28,10 +30,13 @@
                     </div>
                 </div>
                 <div class="flex gap-1">
+                    @can('can-edit')
                     <a href="{{ route('categories.edit', $cat) }}"
                        class="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition">
                         <i class="fas fa-pen text-xs"></i>
                     </a>
+                    @endcan
+                    @can('can-delete')
                     <form method="POST" action="{{ route('categories.destroy', $cat) }}" class="inline"
                           onsubmit="return confirm('Hapus kategori ini?')">
                         @csrf @method('DELETE')
@@ -39,6 +44,7 @@
                             <i class="fas fa-trash text-xs"></i>
                         </button>
                     </form>
+                    @endcan
                 </div>
             </div>
             @if($cat->description)

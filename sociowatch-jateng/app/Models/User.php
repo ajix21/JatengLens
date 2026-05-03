@@ -18,31 +18,30 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name',
-        'email',
-        'password',
+        'name', 'email', 'password', 'role', 'is_active', 'last_login_at',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
-        'password',
-        'remember_token',
+        'password', 'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'          => 'hashed',
+            'is_active'         => 'boolean',
+            'last_login_at'     => 'datetime',
         ];
+    }
+
+    public function isSuperadmin(): bool { return $this->role === 'superadmin'; }
+    public function isAdmin(): bool      { return $this->role === 'admin'; }
+    public function isViewer(): bool     { return $this->role === 'viewer'; }
+    public function canEdit(): bool      { return in_array($this->role, ['superadmin', 'admin']); }
+
+    public function activityLogs()
+    {
+        return $this->hasMany(UserActivityLog::class);
     }
 }

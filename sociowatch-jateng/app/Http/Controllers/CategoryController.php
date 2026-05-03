@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\LogsActivity;
 use App\Models\Category;
 use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
+    use LogsActivity;
     public function index()
     {
         $categories = Category::withCount('socialAccounts')->orderBy('name')->get();
@@ -25,7 +27,8 @@ class CategoryController extends Controller
             'color'       => 'required|string|max:7|regex:/^#[0-9A-Fa-f]{6}$/',
             'description' => 'nullable|string',
         ]);
-        Category::create($data);
+        $cat = Category::create($data);
+        $this->logActivity('create', 'Category', $cat->id);
         return redirect()->route('categories.index')
             ->with('success', 'Kategori berhasil ditambahkan.');
     }
@@ -43,6 +46,7 @@ class CategoryController extends Controller
             'description' => 'nullable|string',
         ]);
         $category->update($data);
+        $this->logActivity('update', 'Category', $category->id);
         return redirect()->route('categories.index')
             ->with('success', 'Kategori berhasil diperbarui.');
     }
@@ -52,7 +56,9 @@ class CategoryController extends Controller
         if ($category->socialAccounts()->exists()) {
             return back()->with('error', 'Kategori tidak dapat dihapus karena masih memiliki akun terdaftar.');
         }
+        $id = $category->id;
         $category->delete();
+        $this->logActivity('delete', 'Category', $id);
         return redirect()->route('categories.index')
             ->with('success', 'Kategori berhasil dihapus.');
     }

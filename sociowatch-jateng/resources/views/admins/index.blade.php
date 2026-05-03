@@ -20,9 +20,11 @@
                 </button>
                 <a href="{{ route('admins.index') }}" class="border border-gray-200 text-gray-600 text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition">Reset</a>
             </div>
+            @can('can-edit')
             <a href="{{ route('admins.create') }}" class="ml-auto bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2 rounded-lg transition flex items-center gap-2">
                 <i class="fas fa-plus"></i> Tambah Admin
             </a>
+            @endcan
         </form>
     </div>
 
@@ -77,10 +79,13 @@
                         </td>
                         <td class="px-4 py-3">
                             <div class="flex items-center justify-center gap-1">
+                                @can('can-edit')
                                 <a href="{{ route('admins.edit', $admin) }}" title="Edit"
                                    class="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition">
                                     <i class="fas fa-pen text-xs"></i>
                                 </a>
+                                @endcan
+                                @can('can-delete')
                                 <form method="POST" action="{{ route('admins.destroy', $admin) }}" class="inline"
                                       onsubmit="return confirm('Hapus data admin ini?')">
                                     @csrf @method('DELETE')
@@ -88,6 +93,7 @@
                                         <i class="fas fa-trash text-xs"></i>
                                     </button>
                                 </form>
+                                @endcan
                             </div>
                         </td>
                     </tr>
