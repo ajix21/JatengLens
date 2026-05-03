@@ -13,6 +13,8 @@ use App\Http\Controllers\ExportController;
 use App\Http\Controllers\AlertController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\PostController;
+use App\Http\Controllers\KeywordController;
 
 // ── Auth (guest only) ────────────────────────────────────────────────────────
 Route::middleware('guest')->group(function () {
@@ -91,4 +93,25 @@ Route::middleware('auth')->group(function () {
 
     // Quick stats update
     Route::post('/accounts/{account}/update-stats', [AccountController::class, 'updateStats'])->name('accounts.update-stats');
+
+    // Posts — static routes before resource to avoid {post} capture
+    Route::get('/posts/flagged',              [PostController::class, 'flagged'])->name('posts.flagged');
+    Route::get('/posts/flagged/pdf',          [PostController::class, 'flaggedPdf'])->name('posts.flagged.pdf');
+    Route::get('/posts/search',               [PostController::class, 'search'])->name('posts.search');
+    Route::get('/posts/import',               [PostController::class, 'importIndex'])->name('posts.import');
+    Route::get('/posts/import/template',      [PostController::class, 'downloadImportTemplate'])->name('posts.import.template');
+    Route::post('/posts/import',              [PostController::class, 'importProcess'])->name('posts.import.process');
+    Route::post('/posts/detect-keywords',     [PostController::class, 'detectKeywords'])->name('posts.detect-keywords');
+    Route::resource('posts', PostController::class);
+    Route::post('/posts/{post}/toggle-flag',  [PostController::class, 'toggleFlag'])->name('posts.toggle-flag');
+
+    // Keywords — static routes before {keyword}
+    Route::get('/keywords/manage',           [KeywordController::class, 'manage'])->name('keywords.manage');
+    Route::post('/keywords/batch-import',    [KeywordController::class, 'batchImport'])->name('keywords.batch-import');
+    Route::post('/keywords/rescan',          [KeywordController::class, 'rescan'])->name('keywords.rescan');
+    Route::post('/keywords',                 [KeywordController::class, 'store'])->name('keywords.store');
+    Route::put('/keywords/{keyword}',        [KeywordController::class, 'update'])->name('keywords.update');
+    Route::delete('/keywords/{keyword}',     [KeywordController::class, 'destroy'])->name('keywords.destroy');
+    Route::post('/keywords/{keyword}/toggle',[KeywordController::class, 'toggle'])->name('keywords.toggle');
+    Route::get('/keywords/{keyword}',        [KeywordController::class, 'show'])->name('keywords.show');
 });

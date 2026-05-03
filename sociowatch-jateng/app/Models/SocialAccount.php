@@ -65,4 +65,9 @@ class SocialAccount extends Model
     {
         return $this->hasOne(AlertSetting::class);
     }
+
+    public function posts(): HasMany
+    {
+        return $this->hasMany(Post::class)->orderByDesc('posted_at');
+    }
 }

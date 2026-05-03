@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             SocialAccountSeeder::class,
             UserSeeder::class,
             SnapshotSeeder::class,
+            KeywordSeeder::class,
+            PostSeeder::class,
         ]);
     }
 }

@@ -5,8 +5,10 @@ namespace App\Console\Commands;
 use App\Models\Alert;
 use App\Models\AlertSetting;
 use App\Models\FollowerSnapshot;
+use App\Models\Keyword;
 use App\Models\SocialAccount;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class MonitorSnapshot extends Command
 {
@@ -100,9 +102,81 @@ class MonitorSnapshot extends Command
 
         $bar->finish();
         $this->newLine();
+
+        // Keyword spike detection
+        $this->info('Memeriksa keyword spike…');
+        $alertCount += $this->detectKeywordSpikes($global, $dryRun);
+
         $this->info("Snapshot: {$snapshotCount} | Alert baru: {$alertCount}" . ($dryRun ? ' (dry-run)' : ''));
 
         return self::SUCCESS;
+    }
+
+    private function detectKeywordSpikes(AlertSetting $global, bool $dryRun): int
+    {
+        $threshold = (int) ($global->keyword_spike_threshold ?? 50);
+        $today     = now()->startOfDay();
+        $window7   = now()->subDays(7)->startOfDay();
+        $alertCount = 0;
+
+        $keywords = Keyword::where('is_active', true)
+            ->whereIn('category', ['sensitif', 'negatif'])
+            ->get();
+
+        foreach ($keywords as $keyword) {
+            // Count occurrences today
+            $todayCount = DB::table('post_keyword_pivot')
+                ->join('posts', 'posts.id', '=', 'post_keyword_pivot.post_id')
+                ->where('post_keyword_pivot.keyword_id', $keyword->id)
+                ->where('posts.posted_at', '>=', $today)
+                ->sum('post_keyword_pivot.occurrence_count');
+
+            if ($todayCount === 0) {
+                continue;
+            }
+
+            // Average daily count over the past 7 days (excluding today)
+            $avg7 = DB::table('post_keyword_pivot')
+                ->join('posts', 'posts.id', '=', 'post_keyword_pivot.post_id')
+                ->where('post_keyword_pivot.keyword_id', $keyword->id)
+                ->where('posts.posted_at', '>=', $window7)
+                ->where('posts.posted_at', '<', $today)
+                ->sum('post_keyword_pivot.occurrence_count') / 7;
+
+            if ($avg7 <= 0) {
+                continue;
+            }
+
+            $pctChange = round(($todayCount - $avg7) / $avg7 * 100, 1);
+
+            if ($pctChange >= $threshold) {
+                // Check no duplicate alert today for this keyword
+                $exists = Alert::where('alert_type', 'keyword_spike')
+                    ->where('message', 'LIKE', "%{$keyword->word}%")
+                    ->where('triggered_at', '>=', $today)
+                    ->exists();
+
+                if (!$exists && !$dryRun) {
+                    Alert::create([
+                        'social_account_id' => null,
+                        'alert_type'        => 'keyword_spike',
+                        'threshold_value'   => $threshold,
+                        'current_value'     => $todayCount,
+                        'change_percent'    => $pctChange,
+                        'message'           => sprintf(
+                            'Keyword "%s" (%s) naik %.1f%% hari ini: %d kemunculan (rata-rata 7h: %.1f)',
+                            $keyword->word, $keyword->category, $pctChange, $todayCount, $avg7
+                        ),
+                        'is_read'      => false,
+                        'triggered_at' => now(),
+                    ]);
+                }
+                $alertCount++;
+                $this->line("  <comment>Spike:</comment> {$keyword->word} +{$pctChange}% ({$todayCount} hari ini)");
+            }
+        }
+
+        return $alertCount;
     }
 
     private function createAlert(SocialAccount $account, string $type, float $threshold, float $pct, int $change, bool $dryRun): int

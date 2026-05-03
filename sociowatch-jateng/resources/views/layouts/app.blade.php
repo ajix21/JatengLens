@@ -208,6 +208,41 @@
                 <span x-show="sidebar">Import Akun</span>
             </a>
 
+            {{-- Section: Konten --}}
+            <div class="nav-section" x-show="sidebar">Konten</div>
+
+            <a href="{{ route('posts.index') }}"
+               class="nav-link {{ request()->routeIs('posts.index') || (request()->routeIs('posts.*') && !request()->routeIs('posts.search') && !request()->routeIs('posts.flagged*') && !request()->routeIs('posts.import*')) ? 'active' : '' }}">
+                <i class="fas fa-newspaper nav-icon"></i>
+                <span x-show="sidebar">Semua Postingan</span>
+            </a>
+
+            <a href="{{ route('posts.search') }}"
+               class="nav-link {{ request()->routeIs('posts.search') ? 'active' : '' }}">
+                <i class="fas fa-search nav-icon"></i>
+                <span x-show="sidebar">Cari Postingan</span>
+            </a>
+
+            <a href="{{ route('posts.flagged') }}"
+               class="nav-link {{ request()->routeIs('posts.flagged*') ? 'active' : '' }}">
+                <i class="fas fa-flag nav-icon"></i>
+                <span x-show="sidebar">Postingan Terpantau</span>
+            </a>
+
+            <a href="{{ route('posts.import') }}"
+               class="nav-link {{ request()->routeIs('posts.import*') ? 'active' : '' }}">
+                <i class="fas fa-file-upload nav-icon"></i>
+                <span x-show="sidebar">Import Postingan</span>
+            </a>
+
+            @if(auth()->user()->role !== 'viewer')
+            <a href="{{ route('keywords.manage') }}"
+               class="nav-link {{ request()->routeIs('keywords.*') ? 'active' : '' }}">
+                <i class="fas fa-hashtag nav-icon"></i>
+                <span x-show="sidebar">Kelola Keyword</span>
+            </a>
+            @endif
+
             {{-- Section: Sistem --}}
             <div class="nav-section" x-show="sidebar">Info Sistem</div>
 

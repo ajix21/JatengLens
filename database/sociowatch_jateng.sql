@@ -230,11 +230,11 @@ CREATE TABLE IF NOT EXISTS `follower_snapshots` (
     REFERENCES `social_accounts` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 16. alerts
+-- 16. alerts  (social_account_id nullable → mendukung keyword_spike system alerts)
 CREATE TABLE IF NOT EXISTS `alerts` (
   `id`                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `social_account_id` BIGINT UNSIGNED NOT NULL,
-  `alert_type`        ENUM('spike_up','spike_down','milestone') NOT NULL,
+  `social_account_id` BIGINT UNSIGNED NULL,
+  `alert_type`        ENUM('spike_up','spike_down','milestone','keyword_spike') NOT NULL,
   `threshold_value`   BIGINT          NOT NULL DEFAULT 0,
   `current_value`     BIGINT          NOT NULL DEFAULT 0,
   `change_percent`    DECIMAL(5,2)    NOT NULL DEFAULT 0,
@@ -251,14 +251,15 @@ CREATE TABLE IF NOT EXISTS `alerts` (
 
 -- 17. alert_settings
 CREATE TABLE IF NOT EXISTS `alert_settings` (
-  `id`                    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `social_account_id`     BIGINT UNSIGNED NULL UNIQUE,
-  `spike_up_threshold`    DECIMAL(5,2)    NOT NULL DEFAULT 10.00,
-  `spike_down_threshold`  DECIMAL(5,2)    NOT NULL DEFAULT 10.00,
-  `milestone_values`      JSON            NULL,
-  `is_active`             TINYINT(1)      NOT NULL DEFAULT 1,
-  `created_at`            TIMESTAMP       NULL,
-  `updated_at`            TIMESTAMP       NULL,
+  `id`                       BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `social_account_id`        BIGINT UNSIGNED NULL UNIQUE,
+  `spike_up_threshold`       DECIMAL(5,2)    NOT NULL DEFAULT 10.00,
+  `spike_down_threshold`     DECIMAL(5,2)    NOT NULL DEFAULT 10.00,
+  `milestone_values`         JSON            NULL,
+  `keyword_spike_threshold`  INT             NOT NULL DEFAULT 50,
+  `is_active`                TINYINT(1)      NOT NULL DEFAULT 1,
+  `created_at`               TIMESTAMP       NULL,
+  `updated_at`               TIMESTAMP       NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT `fk_alertsetting_account` FOREIGN KEY (`social_account_id`)
     REFERENCES `social_accounts` (`id`) ON DELETE CASCADE
@@ -266,9 +267,9 @@ CREATE TABLE IF NOT EXISTS `alert_settings` (
 
 -- Insert default global alert setting (social_account_id = NULL)
 INSERT IGNORE INTO `alert_settings`
-  (`social_account_id`, `spike_up_threshold`, `spike_down_threshold`, `milestone_values`, `is_active`, `created_at`, `updated_at`)
+  (`social_account_id`, `spike_up_threshold`, `spike_down_threshold`, `milestone_values`, `keyword_spike_threshold`, `is_active`, `created_at`, `updated_at`)
 VALUES
-  (NULL, 10.00, 10.00, '[1000, 5000, 10000, 50000, 100000]', 1, NOW(), NOW());
+  (NULL, 10.00, 10.00, '[1000, 5000, 10000, 50000, 100000]', 50, 1, NOW(), NOW());
 
 -- 18. personal_access_tokens (Laravel Sanctum)
 CREATE TABLE IF NOT EXISTS `personal_access_tokens` (
@@ -286,7 +287,78 @@ CREATE TABLE IF NOT EXISTS `personal_access_tokens` (
   INDEX `personal_access_tokens_tokenable_type_tokenable_id_index` (`tokenable_type`, `tokenable_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 19. migrations (table Laravel internal)
+-- 19. posts
+CREATE TABLE IF NOT EXISTS `posts` (
+  `id`                BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `social_account_id` BIGINT UNSIGNED NOT NULL,
+  `platform`          ENUM('instagram','twitter','facebook','tiktok','youtube') NOT NULL,
+  `post_url`          VARCHAR(255)    NULL,
+  `content`           TEXT            NOT NULL,
+  `media_type`        ENUM('text','image','video','reel','story') NULL,
+  `likes_count`       BIGINT          NOT NULL DEFAULT 0,
+  `comments_count`    BIGINT          NOT NULL DEFAULT 0,
+  `shares_count`      BIGINT          NOT NULL DEFAULT 0,
+  `views_count`       BIGINT          NOT NULL DEFAULT 0,
+  `posted_at`         TIMESTAMP       NOT NULL,
+  `is_flagged`        TINYINT(1)      NOT NULL DEFAULT 0,
+  `flag_reason`       TEXT            NULL,
+  `created_at`        TIMESTAMP       NULL,
+  `updated_at`        TIMESTAMP       NULL,
+  PRIMARY KEY (`id`),
+  INDEX `posts_account_posted_idx` (`social_account_id`, `posted_at`),
+  INDEX `posts_is_flagged_index` (`is_flagged`),
+  FULLTEXT INDEX `posts_content_fulltext` (`content`),
+  CONSTRAINT `posts_social_account_id_foreign`
+    FOREIGN KEY (`social_account_id`) REFERENCES `social_accounts` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 20. post_tags
+CREATE TABLE IF NOT EXISTS `post_tags` (
+  `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name`       VARCHAR(255)    NOT NULL UNIQUE,
+  `color`      VARCHAR(7)      NOT NULL DEFAULT '#6366f1',
+  `created_at` TIMESTAMP       NULL,
+  `updated_at` TIMESTAMP       NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 21. post_tag_pivot
+CREATE TABLE IF NOT EXISTS `post_tag_pivot` (
+  `post_id`     BIGINT UNSIGNED NOT NULL,
+  `post_tag_id` BIGINT UNSIGNED NOT NULL,
+  PRIMARY KEY (`post_id`, `post_tag_id`),
+  CONSTRAINT `post_tag_pivot_post_id_foreign`
+    FOREIGN KEY (`post_id`) REFERENCES `posts` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `post_tag_pivot_post_tag_id_foreign`
+    FOREIGN KEY (`post_tag_id`) REFERENCES `post_tags` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 22. keywords
+CREATE TABLE IF NOT EXISTS `keywords` (
+  `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `word`       VARCHAR(255)    NOT NULL UNIQUE,
+  `category`   ENUM('sensitif','negatif','netral','positif') NOT NULL,
+  `color`      VARCHAR(7)      NOT NULL DEFAULT '#6b7280',
+  `is_active`  TINYINT(1)      NOT NULL DEFAULT 1,
+  `created_at` TIMESTAMP       NULL,
+  `updated_at` TIMESTAMP       NULL,
+  PRIMARY KEY (`id`),
+  INDEX `keywords_is_active_index` (`is_active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 23. post_keyword_pivot
+CREATE TABLE IF NOT EXISTS `post_keyword_pivot` (
+  `post_id`          BIGINT UNSIGNED NOT NULL,
+  `keyword_id`       BIGINT UNSIGNED NOT NULL,
+  `occurrence_count` INT             NOT NULL DEFAULT 1,
+  PRIMARY KEY (`post_id`, `keyword_id`),
+  CONSTRAINT `post_keyword_pivot_post_id_foreign`
+    FOREIGN KEY (`post_id`) REFERENCES `posts` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `post_keyword_pivot_keyword_id_foreign`
+    FOREIGN KEY (`keyword_id`) REFERENCES `keywords` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 24. migrations (table Laravel internal)
 CREATE TABLE IF NOT EXISTS `migrations` (
   `id`        INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `migration` VARCHAR(255) NOT NULL,
@@ -399,20 +471,27 @@ VALUES
 --  migrations (track state untuk Laravel)
 -- ------------------------------------------------------------
 INSERT INTO `migrations` (`migration`, `batch`) VALUES
-('0001_01_01_000000_create_users_table',                  1),
-('0001_01_01_000001_create_cache_table',                  1),
-('0001_01_01_000002_create_jobs_table',                   1),
-('2026_05_02_203808_create_regions_table',                1),
-('2026_05_02_203809_create_categories_table',             1),
-('2026_05_02_203809_create_social_accounts_table',        1),
-('2026_05_02_203809_create_account_admins_table',         1),
-('2026_05_02_203809_create_activity_logs_table',          1),
-('2026_05_03_101319_add_role_to_users_table',             2),
-('2026_05_03_101319_create_user_activity_logs_table',     2),
-('2026_05_03_143546_create_follower_snapshots_table',     3),
-('2026_05_03_143547_create_alerts_table',                 3),
-('2026_05_03_143547_create_alert_settings_table',         3),
-('2026_05_03_144509_create_personal_access_tokens_table', 3);
+('0001_01_01_000000_create_users_table',                      1),
+('0001_01_01_000001_create_cache_table',                      1),
+('0001_01_01_000002_create_jobs_table',                       1),
+('2026_05_02_203808_create_regions_table',                    1),
+('2026_05_02_203809_create_categories_table',                 1),
+('2026_05_02_203809_create_social_accounts_table',            1),
+('2026_05_02_203809_create_account_admins_table',             1),
+('2026_05_02_203809_create_activity_logs_table',              1),
+('2026_05_03_101319_add_role_to_users_table',                 2),
+('2026_05_03_101319_create_user_activity_logs_table',         2),
+('2026_05_03_143546_create_follower_snapshots_table',         3),
+('2026_05_03_143547_create_alerts_table',                     3),
+('2026_05_03_143547_create_alert_settings_table',             3),
+('2026_05_03_144509_create_personal_access_tokens_table',     3),
+('2026_05_03_200001_create_posts_table',                      4),
+('2026_05_03_200002_create_post_tags_table',                  4),
+('2026_05_03_200003_create_keywords_table',                   4),
+('2026_05_03_200004_add_fulltext_index_to_posts',             4),
+('2026_05_03_200005_add_keyword_spike_to_alert_settings',     4),
+('2026_05_03_200006_add_keyword_spike_to_alerts_enum',        4),
+('2026_05_03_200007_make_alerts_account_nullable',            4);
 
 SET foreign_key_checks = 1;
 

@@ -8,7 +8,7 @@ class AlertSetting extends Model
 {
     protected $fillable = [
         'social_account_id', 'spike_up_threshold', 'spike_down_threshold',
-        'milestone_values', 'is_active',
+        'milestone_values', 'keyword_spike_threshold', 'is_active',
     ];
 
     protected $casts = [
@@ -29,10 +29,11 @@ class AlertSetting extends Model
         return static::firstOrCreate(
             ['social_account_id' => null],
             [
-                'spike_up_threshold'   => 10.00,
-                'spike_down_threshold' => 10.00,
-                'milestone_values'     => [1000, 5000, 10000, 50000, 100000],
-                'is_active'            => true,
+                'spike_up_threshold'       => 10.00,
+                'spike_down_threshold'     => 10.00,
+                'milestone_values'         => [1000, 5000, 10000, 50000, 100000],
+                'keyword_spike_threshold'  => 50,
+                'is_active'                => true,
             ]
         );
     }
