@@ -144,13 +144,13 @@
             {{-- Wilayah --}}
             <div class="space-y-1 mb-3 pb-2 border-b border-gray-100">
                 <div class="flex items-center gap-2 text-xs text-gray-600">
-                    <span class="w-4 h-3 rounded-sm border border-green-400 flex-shrink-0"
-                          style="background:#bbf7d0"></span>
+                    <span class="w-3 h-3 rounded-full flex-shrink-0 border-2"
+                          style="background:#bbf7d0;border-color:#16a34a"></span>
                     Kabupaten
                 </div>
                 <div class="flex items-center gap-2 text-xs text-gray-600">
-                    <span class="w-4 h-3 rounded-sm border border-amber-400 flex-shrink-0"
-                          style="background:#fde68a"></span>
+                    <span class="w-3 h-3 rounded-full flex-shrink-0 border-2"
+                          style="background:#fde68a;border-color:#d97706"></span>
                     Kota
                 </div>
             </div>
@@ -205,15 +205,9 @@
 
 @push('scripts')
 <script>
-const GEOJSON_URL    = '{{ asset("geojson/jawa-tengah.geojson") }}';
 const URL_MARKERS    = '{{ route("map.markers") }}';
 const URL_CHOROPLETH = '{{ route("map.choropleth") }}';
-const URL_REGION     = '{{ url("map/region") }}';
 const INIT_REGION_ID = '{{ request("region_id") }}';
-
-// Region lookup: geojson_key → {id, name, type, account_count, total_followers}
-// Populated after choropleth fetch on init
-let REGION_LOOKUP = {};
 
 function mapApp() {
     return {
@@ -231,7 +225,7 @@ function mapApp() {
         },
         map: null,
         markerLayer: null,
-        baseLayer: null,
+        regionLayer: null,
         labelLayer: null,
 
         get activeFilterCount() {
@@ -252,13 +246,13 @@ function mapApp() {
                 zoomControl: true,
             });
 
-            // Tile layer — light style
+            // Tile layer — light style tanpa label bawaan
             L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
                 attribution: '© OpenStreetMap © CARTO',
                 subdomains: 'abcd', maxZoom: 19,
             }).addTo(this.map);
 
-            // Marker cluster layer
+            // Marker cluster layer untuk akun
             this.markerLayer = L.markerClusterGroup({
                 maxClusterRadius: 50,
                 showCoverageOnHover: false,
@@ -271,130 +265,84 @@ function mapApp() {
                 },
             });
 
-            // Load region data + GeoJSON in parallel
+            // Load region + akun secara paralel
             await Promise.all([
-                this.loadRegionData(),
+                this.loadRegions(),
                 this.loadMarkers(),
             ]);
         },
 
-        // ── Load region stats to populate lookup ────────────────
-        async loadRegionData() {
+        // ── Load region data → render dot + label per kota/kab ──
+        async loadRegions() {
+            let regions = [];
             try {
                 const res  = await fetch(URL_CHOROPLETH);
                 const data = await res.json();
-                data.regions.forEach(r => { REGION_LOOKUP[r.geojson_key] = r; });
+                regions = data.regions ?? [];
             } catch (e) {
                 console.warn('Region data fetch failed:', e);
-            }
-            await this.renderBaseLayer();
-        },
-
-        // ── Static GeoJSON base layer ────────────────────────────
-        async renderBaseLayer() {
-            if (this.baseLayer)  { this.map.removeLayer(this.baseLayer);  this.baseLayer  = null; }
-            if (this.labelLayer) { this.map.removeLayer(this.labelLayer); this.labelLayer = null; }
-
-            let geojson;
-            try {
-                const res = await fetch(GEOJSON_URL);
-                geojson = await res.json();
-            } catch (e) {
-                console.warn('GeoJSON load failed:', e);
                 return;
             }
 
+            this.regionLayer = L.layerGroup();
+            this.labelLayer  = L.layerGroup();
             const self = this;
 
-            this.baseLayer = L.geoJSON(geojson, {
-                style(feature) {
-                    const isKota = feature.properties.name?.startsWith('Kota');
-                    return {
-                        fillColor:   isKota ? '#fde68a' : '#bbf7d0',
-                        color:       isKota ? '#d97706' : '#16a34a',
-                        weight:      1.5,
-                        fillOpacity: 0.72,
+            regions.forEach(r => {
+                if (!r.latitude || !r.longitude) return;
+
+                const isKota    = r.type === 'kota';
+                const fillColor = isKota ? '#fde68a' : '#bbf7d0';
+                const edgeColor = isKota ? '#d97706' : '#16a34a';
+
+                // Dot marker — circleMarker tanpa GeoJSON
+                const dot = L.circleMarker([r.latitude, r.longitude], {
+                    radius:      isKota ? 9 : 8,
+                    fillColor,
+                    color:       edgeColor,
+                    weight:      2,
+                    fillOpacity: 0.9,
+                    opacity:     1,
+                });
+
+                dot.on('click', function () {
+                    self.selectedRegion = {
+                        id:             r.id,
+                        name:           r.name,
+                        type:           r.type,
+                        account_count:  r.account_count,
+                        total_followers: r.total_followers,
                     };
-                },
-                onEachFeature(feature, layer) {
-                    const key  = feature.properties.KABKOT ?? feature.properties.GEO_KEY ?? '';
-                    const stat = REGION_LOOKUP[key];
+                });
 
-                    layer.on({
-                        mouseover(e) {
-                            e.target.setStyle({ weight: 3, color: '#4F46E5', fillOpacity: 0.88 });
-                            if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-                                e.target.bringToFront();
-                            }
-                            const name = stat?.name ?? feature.properties.name ?? key;
-                            const n    = stat?.account_count ?? 0;
-                            const f    = self.formatNum(stat?.total_followers ?? 0);
-                            layer.bindTooltip(
-                                `<b>${name}</b><br><span style="color:#6b7280">Akun: <b>${n}</b> · Followers: <b>${f}</b></span>`,
-                                { sticky: true, className: 'region-tooltip' }
-                            ).openTooltip();
-                        },
-                        mouseout(e) {
-                            self.baseLayer.resetStyle(e.target);
-                            layer.closeTooltip();
-                        },
-                        click() {
-                            if (stat) {
-                                self.selectedRegion = { ...stat };
-                            }
-                        },
-                    });
-                },
-            }).addTo(this.map);
+                dot.bindTooltip(
+                    `<b>${r.name}</b><br><span style="color:#6b7280">Akun: <b>${r.account_count}</b> · Followers: <b>${self.formatNum(r.total_followers)}</b></span>`,
+                    { sticky: true, className: 'region-tooltip' }
+                );
 
-            // Label layer (permanent region names)
-            this.labelLayer = L.layerGroup();
-            geojson.features.forEach(feature => {
-                const center = self.getFeatureCenter(feature);
-                if (!center) return;
-                const fullName  = feature.properties.name ?? '';
-                const shortName = fullName.replace(/^(Kabupaten|Kota)\s+/i, '');
-                const isKota    = fullName.startsWith('Kota');
-                const label = L.marker(center, {
+                this.regionLayer.addLayer(dot);
+
+                // Label teks di atas dot
+                const shortName = r.name.replace(/^(Kabupaten|Kota)\s+/i, '');
+                const label = L.marker([r.latitude, r.longitude], {
                     icon: L.divIcon({
-                        html: `<div class="region-label ${isKota ? 'kota-label' : ''}">${shortName}</div>`,
+                        html: `<div class="region-label${isKota ? ' kota-label' : ''}">${shortName}</div>`,
                         className: '',
-                        iconAnchor: [0, 0],
+                        iconAnchor: [0, 18],
                     }),
                     interactive: false,
                     zIndexOffset: -100,
                 });
-                self.labelLayer.addLayer(label);
+                this.labelLayer.addLayer(label);
             });
 
+            this.regionLayer.addTo(this.map);
             if (this.showLabels) {
                 this.labelLayer.addTo(this.map);
             }
         },
 
-        // ── Get approximate center of a GeoJSON feature ─────────
-        getFeatureCenter(feature) {
-            try {
-                const geom = feature.geometry;
-                let coords = [];
-                if (geom.type === 'Polygon') {
-                    coords = geom.coordinates[0];
-                } else if (geom.type === 'MultiPolygon') {
-                    // Use the largest polygon
-                    let largest = geom.coordinates[0][0];
-                    geom.coordinates.forEach(poly => {
-                        if (poly[0].length > largest.length) largest = poly[0];
-                    });
-                    coords = largest;
-                }
-                if (!coords.length) return null;
-                let latSum = 0, lngSum = 0;
-                coords.forEach(([lng, lat]) => { lngSum += lng; latSum += lat; });
-                return [latSum / coords.length, lngSum / coords.length];
-            } catch { return null; }
-        },
-
-        // ── Toggle labels ────────────────────────────────────────
+        // ── Toggle nama wilayah ──────────────────────────────────
         toggleLabels() {
             this.showLabels = !this.showLabels;
             if (this.labelLayer) {
@@ -409,7 +357,7 @@ function mapApp() {
             const p = new URLSearchParams();
             this.filters.categories.forEach(c  => p.append('categories[]', c));
             this.filters.platforms.forEach(pl  => p.append('platforms[]', pl));
-            if (this.filters.region_id)    p.set('region_id',    this.filters.region_id);
+            if (this.filters.region_id)     p.set('region_id',    this.filters.region_id);
             if (this.filters.min_followers) p.set('min_followers', this.filters.min_followers);
             if (this.filters.max_followers) p.set('max_followers', this.filters.max_followers);
             return p;
@@ -488,7 +436,7 @@ function mapApp() {
             const sp = new URLSearchParams();
             this.filters.categories.forEach(c  => sp.append('categories[]', c));
             this.filters.platforms.forEach(pl  => sp.append('platforms[]', pl));
-            if (this.filters.region_id)    sp.set('region_id',    this.filters.region_id);
+            if (this.filters.region_id)     sp.set('region_id',    this.filters.region_id);
             if (this.filters.min_followers) sp.set('min_followers', this.filters.min_followers);
             if (this.filters.max_followers) sp.set('max_followers', this.filters.max_followers);
             window.location.href = '{{ route("export.map") }}?' + sp.toString();
@@ -505,24 +453,23 @@ function mapApp() {
 </script>
 
 <style>
-/* ── Region name labels ── */
+/* ── Nama wilayah di atas dot ── */
 .region-label {
     font-size: 10px;
-    font-weight: 600;
-    color: #1e3a1e;
-    text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
+    font-weight: 700;
+    color: #14532d;
     white-space: nowrap;
     pointer-events: none;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%);
     display: block;
     text-align: center;
+    text-shadow: 0 0 4px #fff, 0 0 4px #fff, 0 0 4px #fff;
 }
 .kota-label {
     color: #78350f;
-    font-size: 9px;
 }
 
-/* ── Hover tooltip ── */
+/* ── Tooltip wilayah ── */
 .region-tooltip {
     font-size: 12px;
     background: #fff;
