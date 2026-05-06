@@ -283,7 +283,3 @@ composer dump-autoload
    ```
 
 ---
-
-## Lisensi
-
-Dikembangkan untuk kebutuhan internal Dinas Komunikasi dan Informatika Provinsi Jawa Tengah.
