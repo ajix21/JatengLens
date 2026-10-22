@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\LogsActivity;
+use App\Enums\FetchStatus;
 use App\Models\Category;
 use App\Models\Region;
 use App\Models\SocialAccount;
+use App\Services\SocialFetch\SocialFetchService;
 use Illuminate\Http\Request;
 
 class AccountController extends Controller
@@ -26,6 +28,7 @@ class AccountController extends Controller
         'category_id'     => 'required|exists:categories,id',
         'region_id'       => 'required|exists:regions,id',
         'is_active'       => 'boolean',
+        'auto_fetch'      => 'boolean',
         'notes'           => 'nullable|string',
         'admins'                      => 'nullable|array',
         'admins.*.full_name'          => 'required_with:admins.*|string|max:255',
@@ -76,6 +79,7 @@ class AccountController extends Controller
     {
         $data = $request->validate($this->rules);
         $data['is_active']       = $request->boolean('is_active', true);
+        $data['auto_fetch']      = $request->boolean('auto_fetch', true);
         $data['followers_count'] = $data['followers_count'] ?? 0;
         $data['following_count'] = $data['following_count'] ?? 0;
         $data['post_count']      = $data['post_count'] ?? 0;
@@ -140,6 +144,7 @@ class AccountController extends Controller
     {
         $data = $request->validate($this->rules);
         $data['is_active']       = $request->boolean('is_active', true);
+        $data['auto_fetch']      = $request->boolean('auto_fetch');
         $data['followers_count'] = $data['followers_count'] ?? 0;
         $data['following_count'] = $data['following_count'] ?? 0;
         $data['post_count']      = $data['post_count'] ?? 0;
@@ -166,6 +171,21 @@ class AccountController extends Controller
 
         return redirect()->route('accounts.show', $account)
             ->with('success', 'Data akun berhasil diperbarui.');
+    }
+
+    public function fetchNow(SocialAccount $account, SocialFetchService $service)
+    {
+        if (!in_array($account->platform, ['youtube', 'instagram'], true)) {
+            return back()->with('error', 'Platform ini tidak mendukung pengambilan otomatis.');
+        }
+
+        $result = $service->fetchAccount($account);
+
+        if ($result->status === FetchStatus::Ok) {
+            return back()->with('success', "Data diperbarui: {$result->newPosts} postingan baru, {$result->updatedPosts} diperbarui.");
+        }
+
+        return back()->with('error', $result->status->label() . ($result->message ? ": {$result->message}" : ''));
     }
 
     public function destroy(SocialAccount $account)

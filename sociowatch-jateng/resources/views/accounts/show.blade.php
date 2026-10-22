@@ -40,6 +40,7 @@ $setting = $account->alertSetting ?? $globalSetting;
                 @endif
             </div>
             <p class="text-gray-500 text-sm mb-2">{{ '@' . $account->username }} · {{ $account->region->name ?? '-' }}</p>
+            @include('accounts._fetch-status', ['account' => $account])
             @if($account->bio)
             <p class="text-gray-600 text-sm">{{ $account->bio }}</p>
             @endif
@@ -51,6 +52,17 @@ $setting = $account->alertSetting ?? $globalSetting;
             @endif
         </div>
         <div class="flex gap-2 flex-shrink-0 flex-wrap">
+            @can('can-edit')
+            @if(in_array($account->platform, ['youtube', 'instagram']))
+            <form method="POST" action="{{ route('accounts.fetch', $account) }}">
+                @csrf
+                <button type="submit"
+                        class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-sm px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+                    <i class="fas fa-rotate text-xs"></i> Ambil sekarang
+                </button>
+            </form>
+            @endif
+            @endcan
             {{-- Update Stats --}}
             @can('can-edit')
             <button onclick="document.getElementById('modalStats').classList.remove('hidden')"

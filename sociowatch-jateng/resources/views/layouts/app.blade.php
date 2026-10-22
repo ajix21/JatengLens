@@ -272,6 +272,12 @@
                 <i class="fas fa-key nav-icon"></i>
                 <span x-show="sidebar">API Tokens</span>
             </a>
+
+            <a href="{{ route('auto-fetch.index') }}"
+               class="nav-link {{ request()->routeIs('auto-fetch.*') ? 'active' : '' }}">
+                <i class="fas fa-rotate nav-icon"></i>
+                <span x-show="sidebar">Auto-Fetch</span>
+            </a>
             @endcan
 
         </nav>

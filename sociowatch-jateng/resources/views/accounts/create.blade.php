@@ -97,6 +97,16 @@
                 <span class="text-sm text-gray-600 font-medium">Akun Aktif</span>
             </div>
 
+            <div class="flex items-center gap-3 pt-2">
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="hidden" name="auto_fetch" value="0">
+                    <input type="checkbox" name="auto_fetch" value="1" {{ old('auto_fetch', true) ? 'checked' : '' }}
+                           class="sr-only peer">
+                    <div class="w-10 h-6 bg-gray-200 peer-checked:bg-indigo-600 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                </label>
+                <span class="text-sm text-gray-600 font-medium">Ambil otomatis (YouTube/Instagram)</span>
+            </div>
+
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-600 mb-1">Bio</label>
                 <textarea name="bio" rows="2" placeholder="Deskripsi singkat akun..."

@@ -91,6 +91,11 @@ Route::middleware('auth')->group(function () {
         Route::delete('/settings/api-tokens/{id}', [\App\Http\Controllers\ApiTokenController::class, 'destroy'])->name('api-tokens.destroy');
     });
 
+    Route::post('/accounts/{account}/fetch', [AccountController::class, 'fetchNow'])
+        ->middleware('can:can-edit')->name('accounts.fetch');
+    Route::get('/settings/auto-fetch', [\App\Http\Controllers\FetchStatusController::class, 'index'])
+        ->middleware('can:manage-users')->name('auto-fetch.index');
+
     // Quick stats update
     Route::post('/accounts/{account}/update-stats', [AccountController::class, 'updateStats'])->name('accounts.update-stats');
 
