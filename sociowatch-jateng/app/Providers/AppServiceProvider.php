@@ -3,12 +3,22 @@
 namespace App\Providers;
 
 use App\Models\User;
+use App\Services\KeywordDetectionService;
+use App\Services\SocialFetch\InstagramFetcher;
+use App\Services\SocialFetch\SocialFetchService;
+use App\Services\SocialFetch\YouTubeFetcher;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    public function register(): void {}
+    public function register(): void
+    {
+        $this->app->bind(SocialFetchService::class, fn ($app) => new SocialFetchService(
+            [$app->make(YouTubeFetcher::class), $app->make(InstagramFetcher::class)],
+            $app->make(KeywordDetectionService::class),
+        ));
+    }
 
     public function boot(): void
     {
