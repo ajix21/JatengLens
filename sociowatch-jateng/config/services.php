@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    'youtube' => [
+        'key' => env('YOUTUBE_API_KEY'),
+    ],
+
+    'instagram' => [
+        'token' => env('INSTAGRAM_ACCESS_TOKEN'),
+        'business_id' => env('INSTAGRAM_BUSINESS_ACCOUNT_ID'),
+        'version' => env('INSTAGRAM_GRAPH_VERSION', 'v23.0'),
+        'token_expires_at' => env('INSTAGRAM_TOKEN_EXPIRES_AT'),
+    ],
+
 ];
