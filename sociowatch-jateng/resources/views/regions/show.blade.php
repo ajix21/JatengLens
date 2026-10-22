@@ -132,7 +132,7 @@
                                        class="font-medium text-gray-800 hover:text-indigo-600 truncate block">
                                         {{ $acc->display_name }}
                                     </a>
-                                    <span class="text-xs text-gray-400">@{{ $acc->username }}</span>
+                                    <span class="text-xs text-gray-400">{{ '@' . $acc->username }}</span>
                                 </div>
                             </div>
                         </td>
@@ -211,7 +211,7 @@ L.control.zoom({ position: 'topright' }).addTo(regionMap);
         className: '', iconSize: [12,12], iconAnchor: [6,6]
     });
     L.marker([{{ $region->latitude }}, {{ $region->longitude }}], { icon })
-     .bindPopup('<b>{{ addslashes($acc->display_name) }}</b><br>@{{ $acc->username }}')
+     .bindPopup('<b>{{ addslashes($acc->display_name) }}</b><br>{{ '@' . $acc->username }}')
      .addTo(regionMap);
 })();
 @endif

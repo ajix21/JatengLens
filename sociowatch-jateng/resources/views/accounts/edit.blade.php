@@ -1,6 +1,6 @@
 @extends('layouts.app')
 @section('title', 'Edit Akun — SocioWatch Jateng')
-@section('page-title', 'Edit Akun: @{{ $account->username }}')
+@section('page-title', 'Edit Akun: @' . $account->username)
 
 @section('content')
 @php

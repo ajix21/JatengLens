@@ -18,7 +18,7 @@
             <option value="">Pilih Akun...</option>
             @foreach($accounts as $acc)
             <option value="{{ $acc->id }}" {{ old('social_account_id', $admin->social_account_id) == $acc->id ? 'selected' : '' }}>
-                @{{ $acc->username }} ({{ $acc->platform }}) — {{ $acc->region?->name }}
+                {{ '@' . $acc->username }} ({{ $acc->platform }}) — {{ $acc->region?->name }}
             </option>
             @endforeach
         </select>

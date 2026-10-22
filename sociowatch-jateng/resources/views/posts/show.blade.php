@@ -44,7 +44,7 @@ foreach ($post->keywords->sortByDesc(fn($k) => strlen($k->word)) as $kw) {
                        class="font-bold text-gray-800 hover:text-indigo-600 transition">
                         {{ $post->socialAccount->display_name }}
                     </a>
-                    <span class="text-sm text-gray-400">@{{ $post->socialAccount->username }}</span>
+                    <span class="text-sm text-gray-400">{{ '@' . $post->socialAccount->username }}</span>
                     @if($post->socialAccount->category)
                     <span class="text-xs px-2 py-0.5 rounded-full text-white"
                           style="background:{{ $post->socialAccount->category->color }}">

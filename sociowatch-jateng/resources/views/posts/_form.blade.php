@@ -19,7 +19,7 @@
                         @foreach($accounts as $acc)
                         <option value="{{ $acc->id }}"
                                 {{ old('social_account_id', $post?->social_account_id) == $acc->id ? 'selected' : '' }}>
-                            {{ $acc->display_name }} (@{{ $acc->username }}) · {{ ucfirst($acc->platform) }}
+                            {{ $acc->display_name }} ({{ '@' . $acc->username }}) · {{ ucfirst($acc->platform) }}
                         </option>
                         @endforeach
                     </select>

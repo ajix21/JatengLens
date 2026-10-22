@@ -88,7 +88,7 @@
                     </div>
                     <div class="min-w-0 flex-1">
                         <p class="text-sm font-medium text-gray-800 truncate group-hover:text-indigo-600">{{ $acc->display_name }}</p>
-                        <p class="text-xs text-gray-400 truncate">@{{ $acc->username }} · {{ $acc->region->name ?? '-' }}</p>
+                        <p class="text-xs text-gray-400 truncate">{{ '@' . $acc->username }} · {{ $acc->region->name ?? '-' }}</p>
                     </div>
                     <span class="text-xs px-2 py-0.5 rounded-full text-white flex-shrink-0"
                           style="background:{{ $acc->category->color ?? '#888' }}">

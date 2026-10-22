@@ -106,7 +106,7 @@
                                 </div>
                                 <div class="min-w-0">
                                     <a href="{{ route('accounts.show', $acc) }}" class="font-medium text-gray-800 hover:text-indigo-600 truncate block">{{ $acc->display_name }}</a>
-                                    <span class="text-xs text-gray-400">@{{ $acc->username }}</span>
+                                    <span class="text-xs text-gray-400">{{ '@' . $acc->username }}</span>
                                 </div>
                             </div>
                         </td>

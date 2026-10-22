@@ -40,7 +40,7 @@
 <div class="account-block">
     <div class="account-header">
         {{ $account->display_name }}
-        <small>@{{ $account->username }} · {{ ucfirst($account->platform) }} · {{ $account->region->name ?? '-' }}</small>
+        <small>{{ '@' . $account->username }} · {{ ucfirst($account->platform) }} · {{ $account->region->name ?? '-' }}</small>
     </div>
 
     @foreach($accountPosts as $post)
