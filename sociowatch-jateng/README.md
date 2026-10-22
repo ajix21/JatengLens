@@ -64,3 +64,7 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Auto-Fetch YouTube & Instagram
+
+Pengambilan data akun dan postingan YouTube/Instagram secara otomatis. Langkah mendapatkan kredensial dan mengaktifkannya ada di [docs/setup-auto-fetch.md](../docs/setup-auto-fetch.md).
