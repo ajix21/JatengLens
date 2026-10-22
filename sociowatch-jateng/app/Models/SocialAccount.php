@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\FetchStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,6 +25,11 @@ class SocialAccount extends Model
         'region_id',
         'is_active',
         'notes',
+        'external_id',
+        'auto_fetch',
+        'last_fetched_at',
+        'last_fetch_status',
+        'last_fetch_error',
     ];
 
     protected $casts = [
@@ -31,6 +37,9 @@ class SocialAccount extends Model
         'following_count' => 'integer',
         'post_count'      => 'integer',
         'is_active'       => 'boolean',
+        'auto_fetch'      => 'boolean',
+        'last_fetched_at' => 'datetime',
+        'last_fetch_status' => FetchStatus::class,
     ];
 
     public function category(): BelongsTo
@@ -71,5 +80,10 @@ class SocialAccount extends Model
     public function posts(): HasMany
     {
         return $this->hasMany(Post::class)->orderByDesc('posted_at');
+    }
+
+    public function fetchLogs(): HasMany
+    {
+        return $this->hasMany(FetchLog::class);
     }
 }

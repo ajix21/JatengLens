@@ -15,7 +15,7 @@ class Post extends Model
     protected $fillable = [
         'social_account_id', 'platform', 'post_url', 'content',
         'media_type', 'likes_count', 'comments_count', 'shares_count',
-        'views_count', 'posted_at', 'is_flagged', 'flag_reason',
+        'views_count', 'posted_at', 'is_flagged', 'flag_reason', 'external_id',
     ];
 
     protected $casts = [
