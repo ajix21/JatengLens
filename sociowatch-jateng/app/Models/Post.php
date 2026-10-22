@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -9,6 +10,7 @@ use Laravel\Scout\Searchable;
 
 class Post extends Model
 {
+    use HasFactory;
     use Searchable;
     protected $fillable = [
         'social_account_id', 'platform', 'post_url', 'content',

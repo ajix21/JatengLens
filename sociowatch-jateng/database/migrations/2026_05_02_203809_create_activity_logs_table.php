@@ -11,6 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::disableForeignKeyConstraints();
+
         Schema::create('activity_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('social_account_id')->constrained()->onDelete('cascade');
@@ -20,6 +22,8 @@ return new class extends Migration
             $table->timestamp('logged_at');
             $table->timestamps();
         });
+
+        Schema::enableForeignKeyConstraints();
     }
 
     /**
