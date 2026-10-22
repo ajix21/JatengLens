@@ -9,7 +9,7 @@ Panduan ini untuk operator SocioWatch Jateng. Setelah semua langkah selesai, apl
 ## Cara kerja singkat
 
 - Hanya akun yang **aktif** dan dicentang **Ambil otomatis** (form akun) yang diproses.
-- Pengambilan pertama untuk sebuah akun mengambil postingan 30 hari terakhir (maksimal 50 postingan). Pengambilan berikutnya mengambil 14 hari terakhir.
+- Pengambilan pertama untuk sebuah akun mengambil postingan 30 hari terakhir (maksimal 50 postingan). Pengambilan berikutnya melanjutkan dari pengambilan terakhir (dikurangi 1 hari, minimal 30 hari ke belakang), sehingga postingan baru tidak terlewat meski komputer atau token sempat mati lebih dari 14 hari. Postingan yang sudah ada hanya diperbarui jumlah like/komentar/view-nya bila terbit dalam 14 hari terakhir.
 - Instagram: akun yang dipantau harus bertipe **Business** atau **Creator**. Akun pribadi tidak didukung dan ditandai "Tidak didukung - isi manual".
 - Kegagalan satu akun tidak menghentikan akun lain. Kredensial ditolak atau kuota habis menghentikan platform itu untuk sisa proses.
 
@@ -99,6 +99,8 @@ C:\xampp\php\php.exe artisan social:fetch
 - Platform tanpa kredensial dilewati dengan pesan "Lewati ...: kredensial belum diatur".
 - Pastikan akun yang ingin diambil berstatus aktif dan "Ambil otomatis" dicentang di form akun.
 
+Catatan: pengambilan pertama yang langsung disusul `monitor:snapshot` kemungkinan besar memicu banyak alert lonjakan/milestone, karena jumlah pengikut yang tersimpan berasal dari bulan Mei. Ini wajar dan hanya terjadi sekali.
+
 Anda juga dapat menekan tombol **Ambil sekarang** di halaman detail akun untuk satu akun.
 
 ## Bagian 4. Jadwal otomatis (Windows Task Scheduler)
@@ -106,10 +108,10 @@ Anda juga dapat menekan tombol **Ambil sekarang** di halaman detail akun untuk s
 Laravel menjalankan jadwal lewat `schedule:run` yang harus dipanggil setiap menit. Buat tugas di Command Prompt (jalankan sebagai administrator jika diperlukan):
 
 ```
-schtasks /create /sc minute /mo 1 /tn "SocioWatch Scheduler" /tr "\"C:\xampp\php\php.exe\" \"D:\Project Bot - Work\JatengLens\sociowatch-jateng\artisan\" schedule:run"
+schtasks /create /sc minute /mo 1 /ru SYSTEM /tn "SocioWatch Scheduler" /tr "\"C:\xampp\php\php.exe\" \"D:\Project Bot - Work\JatengLens\sociowatch-jateng\artisan\" schedule:run"
 ```
 
-Tanda `\"` membungkus path yang mengandung spasi di dalam nilai `/tr`.
+Tanda `\"` membungkus path yang mengandung spasi di dalam nilai `/tr`. Opsi `/ru SYSTEM` membuat tugas berjalan walau tidak ada yang login (setara "Run whether user is logged on or not" di tampilan GUI Task Scheduler), jadi pengambilan tetap jalan setelah komputer restart.
 
 Verifikasi:
 

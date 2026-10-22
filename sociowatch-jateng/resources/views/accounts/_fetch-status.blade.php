@@ -13,7 +13,10 @@
         {{ $fs ? $fs->label() : 'Belum pernah diambil' }}
     </span>
     @if($account->last_fetched_at)
-    <span class="text-gray-400">{{ $account->last_fetched_at->diffForHumans() }}</span>
+    <span class="text-gray-400">{{ $fs === \App\Enums\FetchStatus::Ok ? $account->last_fetched_at->diffForHumans() : 'terakhir berhasil ' . $account->last_fetched_at->diffForHumans() }}</span>
+    @endif
+    @if($account->external_id)
+    <span class="text-gray-400 text-[10px]">ID: {{ $account->external_id }}</span>
     @endif
     @unless($account->auto_fetch)
     <span class="text-gray-400">Otomatis mati</span>

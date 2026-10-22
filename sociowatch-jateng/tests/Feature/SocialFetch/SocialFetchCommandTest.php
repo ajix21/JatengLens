@@ -105,6 +105,7 @@ class SocialFetchCommandTest extends TestCase
             $this->assertNotNull($e, "social:fetch $expr");
             $this->assertSame('Asia/Jakarta', (string) $e->timezone);
             $this->assertTrue($e->withoutOverlapping);
+            $this->assertSame(60, $e->expiresAt);
         }
         foreach (['0 7 * * *', '0 19 * * *'] as $expr) {
             $e = $find('monitor:snapshot', $expr);

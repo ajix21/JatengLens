@@ -29,6 +29,9 @@ class InstagramFetcher implements PlatformFetcher
         if ($username === '') {
             throw new FetchException(FetchStatus::NotFound, 'Username Instagram kosong.');
         }
+        if (! preg_match('/^[A-Za-z0-9._]{1,30}$/', $username)) {
+            throw new FetchException(FetchStatus::NotFound, 'Username Instagram tidak valid.');
+        }
 
         $limit = max(1, min($limit, 50));
         $fields = "business_discovery.username({$username}){id,followers_count,follows_count,media_count,"
@@ -104,7 +107,8 @@ class InstagramFetcher implements PlatformFetcher
         $code = $response->json('error.code');
         $code = is_numeric($code) ? (int) $code : null;
 
-        if (in_array($code, [100, 110], true)) {
+        $subcode = $response->json('error.error_subcode');
+        if ($code === 110 || ($code === 100 && is_numeric($subcode) && (int) $subcode === 2207013)) {
             return new FetchException(FetchStatus::Unsupported, 'Akun tidak ditemukan atau bukan akun Business/Creator');
         }
 

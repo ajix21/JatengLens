@@ -18,6 +18,8 @@ class SocialFetchService
 {
     private const LIMIT = 50;
     private const MESSAGE_MAX = 500;
+    private const FIRST_WINDOW_DAYS = 30;
+    private const ENGAGEMENT_DAYS = 14;
 
     /** @var array<string, PlatformFetcher> */
     private array $fetchers = [];
@@ -104,10 +106,7 @@ class SocialFetchService
         }
 
         if (! $fetcher->isConfigured()) {
-            $message = 'kredensial belum diatur';
-            $this->recordFailure($account, FetchStatus::AuthError, $message, $dryRun);
-
-            return new FetchResult($account, FetchStatus::AuthError, 0, 0, $message);
+            return new FetchResult($account, FetchStatus::AuthError, 0, 0, 'kredensial belum diatur');
         }
 
         return $this->process($account, $fetcher, $dryRun);
@@ -115,15 +114,29 @@ class SocialFetchService
 
     private function process(SocialAccount $account, PlatformFetcher $fetcher, bool $dryRun): FetchResult
     {
-        $since = $account->last_fetched_at === null
-            ? CarbonImmutable::now()->subDays(30)
-            : CarbonImmutable::now()->subDays(14);
+        $since = CarbonImmutable::now()->subDays(self::FIRST_WINDOW_DAYS);
+        if ($account->last_fetched_at !== null) {
+            $resume = CarbonImmutable::instance($account->last_fetched_at)->subDay();
+            $since = $resume->lt($since) ? $resume : $since;
+        }
 
         try {
             $fetched = $fetcher->fetch($account, $since, self::LIMIT);
             [$new, $updated] = $dryRun
                 ? $this->countOnly($account, $fetched)
-                : DB::transaction(fn () => $this->persist($account, $fetched));
+                : DB::transaction(function () use ($account, $fetched) {
+                    $counts = $this->persist($account, $fetched);
+                    FetchLog::create([
+                        'social_account_id' => $account->id,
+                        'status' => FetchStatus::Ok,
+                        'new_posts' => $counts[0],
+                        'updated_posts' => $counts[1],
+                        'message' => null,
+                        'fetched_at' => now(),
+                    ]);
+
+                    return $counts;
+                });
         } catch (FetchException $e) {
             $message = $this->sanitize($e->getMessage());
             $this->recordFailure($account, $e->status, $message, $dryRun);
@@ -134,17 +147,6 @@ class SocialFetchService
             $this->recordFailure($account, FetchStatus::Error, $message, $dryRun);
 
             return new FetchResult($account, FetchStatus::Error, 0, 0, $message);
-        }
-
-        if (! $dryRun) {
-            FetchLog::create([
-                'social_account_id' => $account->id,
-                'status' => FetchStatus::Ok,
-                'new_posts' => $new,
-                'updated_posts' => $updated,
-                'message' => null,
-                'fetched_at' => now(),
-            ]);
         }
 
         return new FetchResult($account, FetchStatus::Ok, $new, $updated, null);
@@ -161,6 +163,14 @@ class SocialFetchService
             $post = $this->findExisting($account, $dto);
 
             if ($post) {
+                if (! $this->isRecent($post)) {
+                    // Postingan lama: hanya tautkan external_id, jangan sentuh engagement/konten.
+                    if ($post->external_id === null) {
+                        $post->external_id = $dto->externalId;
+                        $post->save();
+                    }
+                    continue;
+                }
                 $post->fill([
                     'likes_count' => $dto->likes,
                     'comments_count' => $dto->comments,
@@ -218,21 +228,42 @@ class SocialFetchService
         $new = 0;
         $updated = 0;
         foreach ($fetched->posts as $dto) {
-            $this->findExisting($account, $dto) ? $updated++ : $new++;
+            $post = $this->findExisting($account, $dto);
+            if ($post === null) {
+                $new++;
+            } elseif ($this->isRecent($post)) {
+                $updated++;
+            }
         }
 
         return [$new, $updated];
     }
 
+    private function isRecent(Post $post): bool
+    {
+        return $post->posted_at !== null
+            && $post->posted_at->gte(CarbonImmutable::now()->subDays(self::ENGAGEMENT_DAYS));
+    }
+
     private function findExisting(SocialAccount $account, FetchedPost $dto): ?Post
     {
-        return Post::where('platform', $account->platform)
+        $byId = Post::where('platform', $account->platform)
             ->where('external_id', $dto->externalId)
-            ->first()
-            ?? Post::where('social_account_id', $account->id)
-                ->whereNull('external_id')
-                ->where('post_url', $dto->url)
-                ->first();
+            ->first();
+        if ($byId) {
+            return $byId;
+        }
+
+        $key = PostUrlKey::from($dto->url);
+
+        $candidates = Post::where('social_account_id', $account->id)
+            ->whereNull('external_id')
+            ->orderBy('id')
+            ->get(['id', 'post_url']);
+        $match = $candidates->first(fn (Post $p) => $p->post_url === $dto->url
+                || ($key !== null && PostUrlKey::from($p->post_url) === $key));
+
+        return $match ? Post::find($match->id) : null;
     }
 
     private function recordFailure(SocialAccount $account, FetchStatus $status, string $message, bool $dryRun): void
@@ -241,6 +272,7 @@ class SocialFetchService
             return;
         }
 
+        $account->discardChanges();
         $account->forceFill([
             'last_fetch_status' => $status,
             'last_fetch_error' => $message,

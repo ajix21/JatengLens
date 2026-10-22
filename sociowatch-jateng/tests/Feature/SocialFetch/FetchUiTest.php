@@ -96,6 +96,65 @@ class FetchUiTest extends TestCase
         $this->assertFalse($acc->fresh()->auto_fetch);
     }
 
+    private function updatePayload(SocialAccount $acc, array $override = []): array
+    {
+        return array_merge([
+            'platform' => $acc->platform,
+            'username' => $acc->username,
+            'display_name' => $acc->display_name,
+            'profile_url' => $acc->profile_url,
+            'category_id' => $acc->category_id,
+            'region_id' => $acc->region_id,
+            'auto_fetch' => 1,
+        ], $override);
+    }
+
+    public function test_changing_username_profile_url_or_platform_clears_external_id(): void
+    {
+        foreach ([['username' => 'baru_user'], ['profile_url' => 'https://youtube.com/@baru'], ['platform' => 'instagram']] as $change) {
+            $acc = SocialAccount::factory()->youtube()->create(['external_id' => 'UCold', 'profile_url' => 'https://youtube.com/@lama']);
+
+            $this->actingAs($this->user('admin'))
+                ->put(route('accounts.update', $acc), $this->updatePayload($acc, $change))
+                ->assertRedirect();
+
+            $this->assertNull($acc->fresh()->external_id, json_encode($change));
+        }
+    }
+
+    public function test_unchanged_identity_keeps_external_id(): void
+    {
+        $acc = SocialAccount::factory()->youtube()->create(['external_id' => 'UCkeep']);
+
+        $this->actingAs($this->user('admin'))
+            ->put(route('accounts.update', $acc), $this->updatePayload($acc, ['display_name' => 'Nama Baru']))
+            ->assertRedirect();
+
+        $this->assertSame('UCkeep', $acc->fresh()->external_id);
+    }
+
+    public function test_status_shows_last_success_wording_when_not_ok(): void
+    {
+        $yt = SocialAccount::factory()->youtube()->create([
+            'last_fetch_status' => FetchStatus::Quota,
+            'last_fetched_at' => now()->subHours(3),
+        ]);
+
+        $this->actingAs($this->user('admin'))->get(route('accounts.show', $yt))
+            ->assertSee('terakhir berhasil');
+    }
+
+    public function test_fetch_now_raises_time_limit(): void
+    {
+        $this->bindFakes();
+        $acc = SocialAccount::factory()->youtube()->create();
+        set_time_limit(30);
+
+        $this->actingAs($this->user('admin'))->post(route('accounts.fetch', $acc));
+
+        $this->assertSame('120', ini_get('max_execution_time'));
+    }
+
     public function test_status_page_for_superadmin_only_and_hides_secrets(): void
     {
         config([

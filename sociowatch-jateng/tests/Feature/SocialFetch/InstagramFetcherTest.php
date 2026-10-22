@@ -133,6 +133,40 @@ class InstagramFetcherTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_code_100_with_subcode_2207013_is_unsupported(): void
+    {
+        Http::fake(['graph.facebook.com/*' => Http::response(['error' => ['code' => 100, 'error_subcode' => 2207013, 'message' => 'x']], 400)]);
+
+        try {
+            $this->fetch(null, 1, 5);
+            $this->fail('FetchException expected');
+        } catch (FetchException $e) {
+            $this->assertSame(FetchStatus::Unsupported, $e->status);
+        }
+    }
+
+    #[DataProvider('badUsernames')]
+    public function test_invalid_username_is_not_found_without_request(string $username): void
+    {
+        try {
+            $this->fetch(SocialAccount::factory()->instagram()->make(['username' => $username]), 1, 5);
+            $this->fail('FetchException expected');
+        } catch (FetchException $e) {
+            $this->assertSame(FetchStatus::NotFound, $e->status);
+        }
+        Http::assertNothingSent();
+    }
+
+    public static function badUsernames(): array
+    {
+        return [
+            'injection' => ['nu}{id,x'],
+            'space' => ['nu jateng'],
+            'too long' => [str_repeat('a', 31)],
+            'slash' => ['nu/jateng'],
+        ];
+    }
+
     public function test_is_configured_requires_token_and_business_id(): void
     {
         $this->assertTrue((new InstagramFetcher)->isConfigured());
@@ -168,7 +202,7 @@ class InstagramFetcherTest extends TestCase
             '17' => [17, FetchStatus::Quota, null],
             '32' => [32, FetchStatus::Quota, null],
             '613' => [613, FetchStatus::Quota, null],
-            '100' => [100, FetchStatus::Unsupported, $m],
+            '100 plain' => [100, FetchStatus::Error, null],
             '110' => [110, FetchStatus::Unsupported, $m],
             'other' => [999, FetchStatus::Error, null],
         ];

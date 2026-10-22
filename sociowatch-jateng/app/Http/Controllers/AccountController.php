@@ -159,6 +159,13 @@ class AccountController extends Controller
             ]);
         }
 
+        // Identitas berubah: ID hasil resolusi lama tidak berlaku lagi, resolusi ulang saat fetch berikutnya.
+        if ($data['platform'] !== $account->platform
+            || $data['username'] !== $account->username
+            || ($data['profile_url'] ?? null) !== $account->profile_url) {
+            $data['external_id'] = null;
+        }
+
         $account->update($data);
         $account->admins()->delete();
         foreach ($request->input('admins', []) as $adminData) {
@@ -179,6 +186,7 @@ class AccountController extends Controller
             return back()->with('error', 'Platform ini tidak mendukung pengambilan otomatis.');
         }
 
+        set_time_limit(120);
         $result = $service->fetchAccount($account);
 
         if ($result->status === FetchStatus::Ok) {
