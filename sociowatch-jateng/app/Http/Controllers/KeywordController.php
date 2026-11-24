@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Keyword;
 use App\Models\Post;
 use App\Services\KeywordDetectionService;
+use App\Services\SentimentAnalysisService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -132,16 +133,24 @@ class KeywordController extends Controller
 
     public function rescan()
     {
-        $detector = new KeywordDetectionService();
-        $count    = 0;
+        $detector         = new KeywordDetectionService();
+        $sentimentService = new SentimentAnalysisService();
+        $count            = 0;
 
-        Post::chunk(100, function ($posts) use ($detector, &$count) {
+        Post::chunk(100, function ($posts) use ($detector, $sentimentService, &$count) {
             foreach ($posts as $post) {
                 $detected = $detector->detect($post->content);
                 $post->keywords()->sync($detected);
+
+                if (!$post->sentiment_manual) {
+                    $newSentiment = $sentimentService->analyze($post->content);
+                    $post->update(['sentiment' => $newSentiment]);
+                }
+
                 $count++;
             }
             $detector->flush();
+            $sentimentService->flush();
         });
 
         return back()->with('success', "Scan ulang selesai: {$count} postingan diproses.");

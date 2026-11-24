@@ -19,7 +19,7 @@
         <div class="flex flex-wrap items-center gap-3 mb-1">
             <h2 class="text-xl font-bold text-gray-800">{{ $keyword->word }}</h2>
             @php $catColors = ['sensitif'=>'bg-red-100 text-red-700','negatif'=>'bg-orange-100 text-orange-700','netral'=>'bg-gray-100 text-gray-600','positif'=>'bg-green-100 text-green-700']; @endphp
-            <span class="text-sm px-3 py-0.5 rounded-full font-medium {{ $catColors[$keyword->category] }}">
+            <span class="text-sm px-3 py-0.5 rounded-full font-medium {{ $catColors[$keyword->category] ?? 'bg-gray-100 text-gray-600' }}">
                 {{ ucfirst($keyword->category) }}
             </span>
             <span class="text-xs px-2 py-0.5 rounded-full {{ $keyword->is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500' }}">
@@ -57,7 +57,7 @@
             <div class="flex items-center gap-2">
                 <span class="text-xs text-gray-400 w-5 text-center">{{ $i+1 }}</span>
                 <div class="flex-1 min-w-0">
-                    <p class="text-xs font-medium text-gray-700 truncate">{{ $acc->display_name }}</p>
+                    <a href="{{ route('accounts.show', $acc->id) }}" class="text-xs font-medium text-gray-700 hover:text-indigo-600 truncate block">{{ $acc->display_name }}</a>
                     <p class="text-[0.6rem] text-gray-400">{{ ucfirst($acc->platform) }} · {{ $acc->post_count }} post</p>
                 </div>
                 <span class="text-xs font-bold text-gray-600">{{ number_format($acc->total_occurrences) }}×</span>
@@ -76,10 +76,11 @@
     </h3>
     @forelse($posts as $post)
     @php
-    $content = e($post->content);
-    $content = preg_replace('/(' . preg_quote(e($keyword->word), '/') . ')/i',
+    $limitedText = Str::limit($post->content, 300);
+    $highlighted = e($limitedText);
+    $highlighted = preg_replace('/(?<![\p{L}\p{N}_])(' . preg_quote(e($keyword->word), '/') . ')(?![\p{L}\p{N}_])/iu',
         '<mark style="background:' . $keyword->color . '22;color:' . $keyword->color . ';border-radius:3px;padding:0 2px;font-weight:600">$1</mark>',
-        $content);
+        $highlighted);
     @endphp
     <div class="py-3 border-b border-gray-50 last:border-0">
         <div class="flex items-start justify-between gap-3">
@@ -97,7 +98,7 @@
                     </span>
                     @endif
                 </div>
-                <p class="text-sm text-gray-700 leading-relaxed">{!! Str::limit($content, 300) !!}</p>
+                <p class="text-sm text-gray-700 leading-relaxed">{!! $highlighted !!}</p>
             </div>
             <a href="{{ route('posts.show', $post) }}"
                class="text-xs text-indigo-600 border border-indigo-200 hover:bg-indigo-50 px-2.5 py-1 rounded-lg transition flex-shrink-0">
@@ -138,7 +139,7 @@ new Chart(document.getElementById('trendChart'), {
         plugins: { legend: { display: false } },
         scales: {
             x: { grid: { display: false }, ticks: { font: { size: 11 }, maxTicksLimit: 8 } },
-            y: { grid: { color: 'rgba(0,0,0,.04)' }, ticks: { font: { size: 11 }, stepSize: 1 } }
+            y: { grid: { color: 'rgba(0,0,0,.04)' }, ticks: { font: { size: 11 }, precision: 0 } }
         }
     }
 });

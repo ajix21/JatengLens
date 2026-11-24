@@ -34,10 +34,9 @@
                 ['label' => 'Kata Sensitif',  'params' => ['sensitive_only' => '1']],
             ] as $chip)
             <a href="{{ route('posts.search', array_merge(request()->only('q','platform','days','flagged_only','sensitive_only'), $chip['params'])) }}"
+               onclick="const q = document.getElementById('searchInput')?.value || ''; const u = new URL(this.href, window.location.origin); if(q) u.searchParams.set('q', q); else u.searchParams.delete('q'); this.href = u.toString();"
                class="text-xs px-3 py-1.5 rounded-full border transition
-                      {{ collect($chip['params'])->every(fn($v,$k) => request($k) == $v && $v !== '')
-                         ? 'bg-indigo-600 text-white border-indigo-600'
-                         : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100' }}">
+                      {{ ($chip['params']['platform'] ?? null) === '' ? (empty(request('platform')) && !request()->hasAny(['flagged','date_from','sentiment']) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100') : (collect($chip['params'])->every(fn($v,$k) => request($k) == $v && $v !== '') ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100') }}">
                 {{ $chip['label'] }}
             </a>
             @endforeach
@@ -45,8 +44,9 @@
             {{-- Platform chips --}}
             @foreach(['instagram','twitter','facebook','tiktok','youtube'] as $p)
             <a href="{{ route('posts.search', array_merge(request()->only('q','days','flagged_only','sensitive_only'), ['platform' => $p])) }}"
+               onclick="const q = document.getElementById('searchInput')?.value || ''; const u = new URL(this.href, window.location.origin); if(q) u.searchParams.set('q', q); else u.searchParams.delete('q'); this.href = u.toString();"
                class="text-xs px-3 py-1.5 rounded-full border transition
-                      {{ request('platform') === $p ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100' }}">
+                      {{ (empty(request('platform')) && !request()->hasAny(['flagged','date_from','sentiment']) && $p === '') || (request('platform') === $p) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100' }}">
                 {{ ucfirst($p) }}
             </a>
             @endforeach
@@ -128,17 +128,23 @@ $grouped = $posts->getCollection()->groupBy('social_account_id');
     <div class="divide-y divide-gray-50">
         @foreach($accountPosts as $post)
         @php
-        // Highlight search terms in content
-        $displayContent = e($post->content);
+        // Combine all non-empty search terms into a single regex and run a single preg_replace call
+        $validTerms = [];
         foreach (preg_split('/\s+/', trim(request('q'))) as $term) {
             $cleanTerm = ltrim(trim($term, '"'), '-');
             if ($cleanTerm && strtoupper($cleanTerm) !== 'OR') {
-                $displayContent = preg_replace(
-                    '/(' . preg_quote(e($cleanTerm), '/') . ')/i',
-                    '<mark class="bg-yellow-200 text-yellow-900 rounded px-0.5">$1</mark>',
-                    $displayContent
-                );
+                $validTerms[] = $cleanTerm;
             }
+        }
+        $displayContent = e($post->content);
+        if (!empty($validTerms)) {
+            usort($validTerms, fn($a, $b) => mb_strlen($b) - mb_strlen($a));
+            $combinedPattern = '/(?<![\p{L}\p{N}_])(' . implode('|', array_map(fn($t) => preg_quote($t, '/'), $validTerms)) . ')(?![\p{L}\p{N}_])/iu';
+            $displayContent = preg_replace(
+                $combinedPattern,
+                '<mark class="bg-yellow-200 text-yellow-900 rounded px-0.5">$1</mark>',
+                $displayContent
+            );
         }
         @endphp
         <div class="px-5 py-4">

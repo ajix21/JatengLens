@@ -19,17 +19,29 @@ class KeywordDetectionService
     }
 
     /**
-     * Detect active keywords in the given content.
+     * Detect active keywords in the given content using whole-word boundary.
+     * Prevents false positives where keywords match as substrings inside other words
+     * (e.g. 'aksi' matching 'saksi' or 'demo' matching 'demokrasi').
+     *
      * Returns array of [keyword_id => ['occurrence_count' => N]].
      */
     public function detect(string $content): array
     {
-        $lower   = mb_strtolower($content);
+        if (trim($content) === '') {
+            return [];
+        }
+
         $results = [];
 
         foreach ($this->keywords() as $keyword) {
-            $word  = mb_strtolower($keyword->word);
-            $count = substr_count($lower, $word);
+            $word = trim($keyword->word);
+            if ($word === '') {
+                continue;
+            }
+
+            $pattern = '/(?<![\p{L}\p{N}_])' . preg_quote($word, '/') . '(?![\p{L}\p{N}_])/iu';
+            $count = preg_match_all($pattern, $content);
+
             if ($count > 0) {
                 $results[$keyword->id] = ['occurrence_count' => $count];
             }

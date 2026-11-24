@@ -1,0 +1,16 @@
+.git
+.github
+.superpowers
+docs
+extension
+database
+sociowatch-jateng/vendor
+sociowatch-jateng/node_modules
+sociowatch-jateng/.env
+sociowatch-jateng/.env.*
+sociowatch-jateng/storage/logs/*
+sociowatch-jateng/storage/framework/cache/*
+sociowatch-jateng/storage/framework/sessions/*
+sociowatch-jateng/storage/framework/views/*
+sociowatch-jateng/tests
+*.log

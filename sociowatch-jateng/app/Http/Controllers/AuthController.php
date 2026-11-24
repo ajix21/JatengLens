@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\UserActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -23,15 +25,28 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        $user = \App\Models\User::where('email', $credentials['email'])->first();
+        $throttleKey = Str::transliterate(Str::lower($credentials['email']) . '|' . $request->ip());
 
-        if ($user && !$user->is_active) {
-            return back()->withErrors(['email' => 'Akun Anda dinonaktifkan. Hubungi administrator.'])->withInput();
+        // Mitigate SEC-01: Brute force & credential stuffing protection
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            $seconds = RateLimiter::availableIn($throttleKey);
+            return back()->withErrors([
+                'email' => "Terlalu banyak percobaan login. Silakan coba lagi dalam {$seconds} detik.",
+            ])->withInput($request->except('password'));
         }
 
-        if (!Auth::attempt($credentials, $request->boolean('remember'))) {
-            return back()->withErrors(['email' => 'Email atau password salah.'])->withInput();
+        // Mitigate SEC-02: Prevent user enumeration by combining credentials and is_active check
+        $attemptCredentials = array_merge($credentials, ['is_active' => true]);
+
+        if (!Auth::attempt($attemptCredentials, $request->boolean('remember'))) {
+            RateLimiter::hit($throttleKey, 60);
+
+            return back()->withErrors([
+                'email' => 'Kombinasi email atau password yang Anda masukkan salah.',
+            ])->withInput($request->except('password'));
         }
+
+        RateLimiter::clear($throttleKey);
 
         $request->session()->regenerate();
 

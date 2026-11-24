@@ -46,4 +46,19 @@ return [
         'token_expires_at' => env('INSTAGRAM_TOKEN_EXPIRES_AT'),
     ],
 
+    'gemini' => [
+        'key'      => env('GEMINI_API_KEY'),
+        'model'    => env('GEMINI_MODEL', 'gemini-2.5-flash'),
+        'endpoint' => env('GEMINI_ENDPOINT', 'https://generativelanguage.googleapis.com/v1beta'),
+    ],
+
+    'browser_sync' => [
+        'token' => env('BROWSER_SYNC_TOKEN'),
+    ],
+
+    'telegram' => [
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'chat_id'   => env('TELEGRAM_CHAT_ID'),
+    ],
+
 ];

@@ -35,7 +35,7 @@ class InstagramFetcher implements PlatformFetcher
 
         $limit = max(1, min($limit, 50));
         $fields = "business_discovery.username({$username}){id,followers_count,follows_count,media_count,"
-            ."media.limit({$limit}){id,caption,like_count,comments_count,media_type,media_product_type,permalink,timestamp}}";
+            ."media.limit({$limit}){id,caption,like_count,comments_count,media_type,media_product_type,permalink,timestamp,media_url}}";
 
         $data = $this->get($fields)['business_discovery'] ?? null;
         if (! is_array($data) || ! isset($data['id'])) {
@@ -62,6 +62,7 @@ class InstagramFetcher implements PlatformFetcher
                 comments: (int) ($m['comments_count'] ?? 0),
                 views: 0,
                 postedAt: $at,
+                mediaUrl: isset($m['media_url']) && filled($m['media_url']) ? (string) $m['media_url'] : null,
             );
         }
 

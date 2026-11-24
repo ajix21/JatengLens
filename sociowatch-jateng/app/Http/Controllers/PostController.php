@@ -10,6 +10,7 @@ use App\Models\PostTag;
 use App\Models\Region;
 use App\Models\SocialAccount;
 use App\Services\KeywordDetectionService;
+use App\Services\SentimentAnalysisService;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -44,6 +45,9 @@ class PostController extends Controller
         }
         if ($request->filled('flagged')) {
             $query->where('is_flagged', true);
+        }
+        if ($request->filled('sentiment') && in_array($request->sentiment, ['sensitif', 'negatif', 'netral', 'positif'], true)) {
+            $query->where('sentiment', $request->sentiment);
         }
         if ($request->filled('tag_id')) {
             $query->whereHas('tags', fn($q) => $q->where('post_tags.id', $request->tag_id));
@@ -93,6 +97,7 @@ class PostController extends Controller
             'flag_reason'       => 'nullable|string|max:500',
             'tags'              => 'nullable|array',
             'tags.*'            => 'string|max:50',
+            'sentiment_mode'    => 'nullable|in:auto,sensitif,negatif,netral,positif',
         ]);
 
         $account = SocialAccount::findOrFail($data['social_account_id']);
@@ -116,6 +121,14 @@ class PostController extends Controller
         $detector = new KeywordDetectionService();
         $detected = $detector->detect($post->content);
         $post->keywords()->sync($detected);
+
+        $mode = $request->input('sentiment_mode', 'auto');
+        if ($mode !== 'auto' && in_array($mode, ['sensitif', 'negatif', 'netral', 'positif'], true)) {
+            $post->update(['sentiment' => $mode, 'sentiment_manual' => true]);
+        } else {
+            $sentiment = app(SentimentAnalysisService::class)->analyze($post->content);
+            $post->update(['sentiment' => $sentiment, 'sentiment_manual' => false]);
+        }
 
         return redirect()->route('posts.show', $post)->with('success', 'Postingan berhasil ditambahkan.');
     }
@@ -150,6 +163,7 @@ class PostController extends Controller
             'flag_reason'       => 'nullable|string|max:500',
             'tags'              => 'nullable|array',
             'tags.*'            => 'string|max:50',
+            'sentiment_mode'    => 'nullable|in:auto,sensitif,negatif,netral,positif',
         ]);
 
         $account = SocialAccount::findOrFail($data['social_account_id']);
@@ -171,6 +185,18 @@ class PostController extends Controller
         $detector = new KeywordDetectionService();
         $detected = $detector->detect($post->content);
         $post->keywords()->sync($detected);
+
+        if ($request->filled('sentiment_mode')) {
+            if ($request->sentiment_mode === 'auto') {
+                $sentiment = app(SentimentAnalysisService::class)->analyze($post->content);
+                $post->update(['sentiment' => $sentiment, 'sentiment_manual' => false]);
+            } else {
+                $post->update(['sentiment' => $request->sentiment_mode, 'sentiment_manual' => true]);
+            }
+        } elseif (!$post->sentiment_manual) {
+            $sentiment = app(SentimentAnalysisService::class)->analyze($post->content);
+            $post->update(['sentiment' => $sentiment]);
+        }
 
         return redirect()->route('posts.show', $post)->with('success', 'Postingan berhasil diperbarui.');
     }

@@ -35,14 +35,16 @@
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Role</label>
                     <select name="role" required
-                            class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+                            class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none @error('role') border-red-400 @enderror">
                         <option value="viewer"     @selected(old('role',$user->role)=='viewer')>Viewer</option>
                         <option value="admin"      @selected(old('role',$user->role)=='admin')>Admin</option>
                         <option value="superadmin" @selected(old('role',$user->role)=='superadmin')>Superadmin</option>
                     </select>
+                    @error('role')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                 </div>
 
                 <div class="flex items-center gap-2">
+                    <input type="hidden" name="is_active" value="0">
                     <input type="checkbox" name="is_active" value="1" id="is_active"
                            {{ old('is_active', $user->is_active) ? 'checked' : '' }}
                            class="rounded" style="accent-color:#4F46E5">
@@ -67,7 +69,7 @@
     {{-- Reset password --}}
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-4">
         <h3 class="font-semibold text-slate-800">Reset Password</h3>
-        <form method="POST" action="{{ route('users.reset-password', $user) }}">
+        <form method="POST" action="{{ route('users.reset-password', $user) }}" onsubmit="return confirm('Reset password untuk user ini?')">
             @csrf
             <div class="space-y-3">
                 <div>

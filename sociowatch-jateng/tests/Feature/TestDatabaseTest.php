@@ -14,7 +14,7 @@ class TestDatabaseTest extends TestCase
 
     public function test_uses_isolated_test_database(): void
     {
-        $this->assertSame('sociowatch_jateng_test', DB::connection()->getDatabaseName());
+        $this->assertContains(DB::connection()->getDatabaseName(), ['sociowatch_test', 'sociowatch_jateng_test']);
     }
 
     public function test_factories_build_youtube_and_instagram_accounts(): void

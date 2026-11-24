@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SocioWatch Jateng - Instagram Sync</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-light: #eef2ff;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      width: 440px;
+      min-height: 580px;
+      background-color: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.4;
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #4338ca 0%, #312e81 100%);
+      color: #fff;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .header-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+    .header-subtitle {
+      font-size: 11px;
+      opacity: 0.85;
+    }
+    .badge-version {
+      background: rgba(255,255,255,0.2);
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    /* Container */
+    .container {
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Status Grid */
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .status-item {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .status-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .status-value {
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .dot.green { background: var(--success); }
+    .dot.red { background: var(--danger); }
+    .dot.yellow { background: var(--warning); }
+    .dot.gray { background: #94a3b8; }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+
+    /* Buttons */
+    .btn {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: all 0.15s ease;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+    }
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #334155;
+    }
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+    .btn-sm {
+      padding: 4px 9px;
+      font-size: 11px;
+      border-radius: 6px;
+    }
+
+    /* Progress */
+    .progress-wrapper {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .progress-bar-bg {
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--primary);
+      transition: width 0.25s ease;
+    }
+    .progress-text {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Toggle Switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #cbd5e1;
+      transition: .2s;
+      border-radius: 20px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .2s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: var(--primary);
+    }
+    input:checked + .slider:before {
+      transform: translateX(16px);
+    }
+
+    /* Schedule Card */
+    .schedule-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .schedule-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .schedule-body {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-top: 6px;
+      border-top: 1px solid #f1f5f9;
+    }
+    .schedule-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 6px;
+      align-items: end;
+    }
+    .next-run-pill {
+      font-size: 11px;
+      background: #eef2ff;
+      color: #3730a3;
+      padding: 5px 8px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Dynamic Account Selector */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .selector-toolbar {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .search-box {
+      position: relative;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 6px 10px 6px 28px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 12px;
+      background: #fff;
+      outline: none;
+    }
+    .search-box input:focus {
+      border-color: var(--primary);
+    }
+    .search-icon {
+      position: absolute;
+      left: 9px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+      font-size: 12px;
+      pointer-events: none;
+    }
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .chip-group {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: #475569;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .chip.active {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+      font-size: 11px;
+    }
+
+    .account-list {
+      max-height: 175px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+    }
+    .account-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 10px;
+      border-bottom: 1px solid #f1f5f9;
+      gap: 9px;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .account-item:last-child {
+      border-bottom: none;
+    }
+    .account-item:hover {
+      background: #f8fafc;
+    }
+    .account-item.selected {
+      background: #f5f7ff;
+    }
+    .acc-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .account-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .account-name-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .account-name {
+      font-weight: 600;
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .account-meta {
+      font-size: 10px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .badge {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .badge-orange { background: #ffedd5; color: #9a3412; }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-slate { background: #f1f5f9; color: #475569; }
+    .badge-ig { background: #fce7f3; color: #be185d; }
+    .badge-fb { background: #dbeafe; color: #1d4ed8; }
+
+    /* Terminal Log */
+    .log-box {
+      background: #0f172a;
+      color: #94a3b8;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 10.5px;
+      max-height: 95px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .log-entry { word-break: break-word; }
+    .log-success { color: #34d399; }
+    .log-error { color: #f87171; }
+    .log-info { color: #60a5fa; }
+    .log-warn { color: #fbbf24; }
+
+    /* Settings Panel */
+    .settings-panel {
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .form-group label {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .form-control {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 12px;
+      color: var(--text);
+      outline: none;
+      background: #fff;
+    }
+    .form-control:focus {
+      border-color: var(--primary);
+    }
+    .footer-links {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 2px;
+      font-size: 11px;
+    }
+    .link {
+      color: var(--primary);
+      text-decoration: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-brand">
+      <div class="header-logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path>
+          <path d="M2 12h20"></path>
+        </svg>
+      </div>
+      <div>
+        <div class="header-title">SocioWatch Jateng</div>
+        <div class="header-subtitle">Instagram &amp; Facebook Sync</div>
+      </div>
+    </div>
+    <span class="badge-version">v2.3.1</span>
+  </div>
+
+  <div class="container">
+
+    <!-- Status Grid -->
+    <div class="status-grid">
+      <div class="status-item">
+        <span class="status-label">Instagram</span>
+        <div class="status-value" id="igStatus">
+          <span class="dot yellow"></span>
+          <span>Cek...</span>
+        </div>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Facebook</span>
+        <div class="status-value" id="fbStatus">
+          <span class="dot yellow"></span>
+          <span>Cek...</span>
+        </div>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Server</span>
+        <div class="status-value" id="serverStatus">
+          <span class="dot yellow"></span>
+          <span>Cek...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Action Card -->
+    <div class="card">
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-primary" id="btnStartSync" style="flex: 1;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          <span id="btnStartSyncLabel">Mulai Sinkronisasi</span>
+        </button>
+        <button class="btn btn-secondary" id="btnStopSync" style="display: none; color: #dc2626;" title="Hentikan sinkronisasi">
+          ■ Stop
+        </button>
+      </div>
+
+      <!-- Progress Section -->
+      <div class="progress-wrapper" id="progressWrapper">
+        <div class="progress-text">
+          <span id="progressLabel">Mengambil data...</span>
+          <span id="progressPercent">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progressBar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2x Daily Auto-Schedule Card -->
+    <div class="card">
+      <div class="schedule-header">
+        <span class="schedule-title">
+          <span>⏰ Jadwal Otomatis (2x Sehari)</span>
+        </span>
+        <label class="switch" title="Aktifkan/Nonaktifkan sinkronisasi terjadwal">
+          <input type="checkbox" id="scheduleEnabled" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="schedule-body" id="scheduleBody">
+        <div class="schedule-row">
+          <div class="form-group">
+            <label for="scheduleTime1">Jadwal 1 (Pagi)</label>
+            <input type="time" id="scheduleTime1" class="form-control" value="08:00">
+          </div>
+          <div class="form-group">
+            <label for="scheduleTime2">Jadwal 2 (Malam)</label>
+            <input type="time" id="scheduleTime2" class="form-control" value="20:00">
+          </div>
+          <button class="btn btn-primary btn-sm" id="btnSaveSchedule" style="height: 30px;">Simpan</button>
+        </div>
+        <div style="font-size: 10px; color: var(--text-muted);">
+          Selaras dengan jadwal server 08:00 &amp; 20:00 WIB (Snapshot 08:15/20:15, Briefing 08:20/20:20).
+        </div>
+
+        <div class="form-group">
+          <label for="scheduleScope">Target Jadwal Otomatis</label>
+          <select id="scheduleScope" class="form-control">
+            <option value="all_targets">Semua akun target yang tampil</option>
+            <option value="selected_only">Hanya akun yang dicentang di bawah</option>
+          </select>
+        </div>
+
+        <div class="next-run-pill" id="nextRunInfo">
+          <span>Jadwal berikutnya:</span>
+          <strong id="nextRunTime">Memuat...</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dynamic Account Selector -->
+    <div>
+      <div class="section-header">
+        <span class="section-title">
+          <span>Pilih Akun Target</span>
+          <span id="accountCountBadge" style="font-size: 10px; background: #e0e7ff; color: #3730a3; padding: 1px 7px; border-radius: 10px;">0/0 dipilih</span>
+        </span>
+        <button class="btn btn-secondary btn-sm" id="btnRefreshAccounts" title="Segarkan daftar akun">
+          ⟳ Refresh
+        </button>
+      </div>
+
+      <div class="selector-toolbar">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="accountSearch" placeholder="Cari @username, nama, kategori, wilayah...">
+        </div>
+        <div class="filter-bar">
+          <div class="chip-group" id="filterChips">
+            <button type="button" class="chip active" data-filter="all">Semua</button>
+            <button type="button" class="chip" data-filter="instagram">Instagram</button>
+            <button type="button" class="chip" data-filter="facebook">Facebook</button>
+            <button type="button" class="chip" data-filter="personal">Personal</button>
+          </div>
+          <div class="quick-actions">
+            <span class="link" id="btnSelectAll">Pilih Semua</span>
+            <span style="color: #cbd5e1;">|</span>
+            <span class="link" id="btnDeselectAll" style="color: #64748b;">Reset</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="account-list" id="accountList">
+        <div style="padding: 16px; text-align: center; color: var(--text-muted);">
+          Memuat daftar akun...
+        </div>
+      </div>
+    </div>
+
+    <!-- Log Console -->
+    <div>
+      <div class="section-header">
+        <span class="section-title">Aktivitas & Log</span>
+        <span id="btnClearLog" class="link" style="font-size: 10px;">Bersihkan</span>
+      </div>
+      <div class="log-box" id="logBox">
+        <div class="log-entry log-info">[Siap] Ekstensi SocioWatch siap digunakan.</div>
+      </div>
+    </div>
+
+    <!-- Settings Toggle & Panel -->
+    <div class="footer-links">
+      <span class="link" id="toggleSettings">⚙ Pengaturan Backend</span>
+      <div style="display: flex; gap: 10px;">
+        <a href="https://www.instagram.com" target="_blank" class="link">Instagram ↗</a>
+        <a href="https://www.facebook.com" target="_blank" class="link">Facebook ↗</a>
+      </div>
+    </div>
+
+    <div class="settings-panel" id="settingsPanel">
+      <div class="form-group">
+        <label for="backendUrl">URL Server SocioWatch / JatengLens:</label>
+        <input type="text" id="backendUrl" class="form-control" value="http://localhost:8000" placeholder="http://localhost:8000">
+      </div>
+      <div class="form-group">
+        <label for="syncToken">Sync API Token (X-Sync-Token, opsional jika diatur di .env):</label>
+        <input type="password" id="syncToken" class="form-control" placeholder="Kosongkan jika belum diatur di .env">
+      </div>
+      <div class="form-group">
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+          <input type="checkbox" id="syncAllAccounts">
+          <span>Tampilkan seluruh akun Instagram (termasuk akun Bisnis/API)</span>
+        </label>
+      </div>
+      <div style="display: flex; gap: 6px; margin-top: 2px;">
+        <button class="btn btn-primary btn-sm" id="btnSaveSettings" style="flex: 1;">Simpan</button>
+        <button class="btn btn-secondary btn-sm" id="btnTestServer">Tes Server</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

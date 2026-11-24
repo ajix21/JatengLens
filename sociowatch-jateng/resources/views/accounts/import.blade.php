@@ -50,7 +50,7 @@
     </div>
 
     {{-- Kategori & Wilayah reference --}}
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
             <h3 class="font-semibold text-gray-700 text-sm mb-3 flex items-center gap-2">
                 <i class="fas fa-tags text-indigo-500"></i> Kategori Tersedia
@@ -63,28 +63,31 @@
                 @endforeach
             </div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-            <h3 class="font-semibold text-gray-700 text-sm mb-3 flex items-center gap-2">
-                <i class="fas fa-map-pin text-blue-500"></i> Contoh Nama Wilayah
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4" x-data="{ qRegion: '' }">
+            <h3 class="font-semibold text-gray-700 text-sm mb-2 flex items-center gap-2">
+                <i class="fas fa-map-pin text-blue-500"></i> Daftar Wilayah (35 Kabupaten/Kota)
             </h3>
-            <div class="text-xs text-gray-500 space-y-0.5 max-h-24 overflow-y-auto">
-                @foreach($regions->take(8) as $r)
-                <div>{{ $r->name }}</div>
+            <div class="mb-2">
+                <input type="text" x-model="qRegion" placeholder="Cari wilayah..."
+                       class="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-indigo-300 focus:outline-none">
+            </div>
+            <div class="text-xs text-gray-600 space-y-1 max-h-36 overflow-y-auto pr-1">
+                @foreach($regions as $r)
+                <div x-show="!qRegion || $el.dataset.name.includes(qRegion.toLowerCase())" data-name="{{ strtolower($r->name) }}" class="py-0.5 px-1 hover:bg-gray-50 rounded">
+                    {{ $r->name }} <span class="text-gray-400 text-[10px] uppercase">({{ $r->type }})</span>
+                </div>
                 @endforeach
-                @if($regions->count() > 8)
-                <div class="text-gray-400">+ {{ $regions->count() - 8 }} lainnya</div>
-                @endif
             </div>
         </div>
     </div>
 
     {{-- Upload form --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
-         x-data="{ dragging: false, fileName: '' }">
+         x-data="{ dragging: false, fileName: '', submitting: false }">
         <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <i class="fas fa-upload text-indigo-500"></i> Upload File
         </h2>
-        <form method="POST" action="{{ route('accounts.import.process') }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ route('accounts.import.process') }}" enctype="multipart/form-data" @submit="submitting = true">
             @csrf
 
             {{-- Dropzone --}}
@@ -111,6 +114,8 @@
                     Batal
                 </a>
                 <button type="submit"
+                        :disabled="!fileName || submitting"
+                        :class="(!fileName || submitting) ? 'opacity-60 cursor-not-allowed' : ''"
                         class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2.5 rounded-lg transition flex items-center justify-center gap-2">
                     <i class="fas fa-file-import"></i> Import Sekarang
                 </button>

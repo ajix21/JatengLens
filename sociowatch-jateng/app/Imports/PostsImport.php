@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\Post;
 use App\Models\SocialAccount;
 use App\Services\KeywordDetectionService;
+use App\Services\SentimentAnalysisService;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -17,13 +18,15 @@ class PostsImport implements ToCollection, WithHeadingRow
 
     private Collection $accounts;
     private KeywordDetectionService $detector;
+    private SentimentAnalysisService $sentiment;
 
     public function __construct()
     {
         $this->accounts = SocialAccount::all()->mapWithKeys(
             fn($a) => [$a->platform . '|' . $a->username => $a]
         );
-        $this->detector = new KeywordDetectionService();
+        $this->detector  = new KeywordDetectionService();
+        $this->sentiment = new SentimentAnalysisService();
     }
 
     public function collection(Collection $rows): void
@@ -62,6 +65,8 @@ class PostsImport implements ToCollection, WithHeadingRow
                 'views_count'       => (int) ($row['views_count'] ?? 0),
                 'posted_at'         => $postedAt,
                 'is_flagged'        => false,
+                'sentiment'         => $this->sentiment->analyze($content ?: ''),
+                'sentiment_manual'  => false,
             ]);
 
             if ($content) {

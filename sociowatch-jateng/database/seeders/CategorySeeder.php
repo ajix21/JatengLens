@@ -37,11 +37,11 @@ class CategorySeeder extends Seeder
             ],
         ];
 
-        DB::table('categories')->insert(array_map(function ($cat) {
-            return array_merge($cat, [
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }, $categories));
+        foreach ($categories as $cat) {
+            DB::table('categories')->updateOrInsert(
+                ['name' => $cat['name']],
+                array_merge($cat, ['created_at' => now(), 'updated_at' => now()])
+            );
+        }
     }
 }

@@ -73,9 +73,11 @@
         /* ── nav section label ── */
         .nav-section {
             font-size: 0.65rem; font-weight: 700; letter-spacing: .09em;
-            text-transform: uppercase; color: #334155;
+            text-transform: uppercase; color: #94a3b8;
             padding: 16px 14px 6px; white-space: nowrap; overflow: hidden;
         }
+
+        .nav-link:focus-visible { outline: 2px solid #818cf8; outline-offset: -2px; }
 
         /* ── UTAMA badge ── */
         .badge-utama {
@@ -102,16 +104,17 @@
 </head>
 
 <body class="font-sans antialiased">
+<a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-indigo-600 focus:text-white focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm">Lewati ke konten utama</a>
 <div class="flex h-screen overflow-hidden">
 
     {{-- ═══════════════════════════════════════════════════════
          SIDEBAR — dark navy professional
     ═══════════════════════════════════════════════════════ --}}
+    <div x-show="sidebar" x-transition.opacity @click="sidebar = false" class="fixed inset-0 bg-slate-900/50 z-30 lg:hidden" style="display:none"></div>
     <aside id="sidebar"
-           class="flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out overflow-hidden"
-           :class="sidebar ? 'w-64' : 'w-16'"
-           style="background: linear-gradient(180deg, #0d1424 0%, #111827 100%); border-right: 1px solid rgba(255,255,255,.06);"
-           x-cloak>
+           class="fixed lg:static inset-y-0 left-0 z-40 flex flex-col flex-shrink-0 select-none overflow-hidden transition-all duration-200"
+           :class="sidebar ? 'w-64 translate-x-0' : 'w-64 -translate-x-full lg:translate-x-0 lg:w-16'"
+           style="background: linear-gradient(180deg, #0d1424 0%, #111827 100%); border-right: 1px solid rgba(255,255,255,.06);">
 
         {{-- ── Logo / Brand ── --}}
         <div class="flex items-center gap-3 px-4 min-h-[64px] flex-shrink-0"
@@ -285,6 +288,7 @@
         {{-- ── Collapse button ── --}}
         <div class="flex-shrink-0 px-2 pb-3" style="border-top: 1px solid rgba(255,255,255,.06); padding-top: 10px;">
             <button @click="sidebar = !sidebar; saveSidebar()"
+                    aria-label="Ciutkan atau perluas sidebar"
                     class="nav-link w-full justify-center"
                     style="padding: 8px;">
                 <i class="fas nav-icon" :class="sidebar ? 'fa-chevron-left' : 'fa-chevron-right'"
@@ -306,7 +310,7 @@
             {{-- Left: page title + breadcrumb --}}
             <div class="flex items-center gap-3 min-w-0">
                 {{-- Mobile toggle --}}
-                <button @click="sidebar = !sidebar" class="text-slate-400 hover:text-slate-600 lg:hidden">
+                <button @click="sidebar = !sidebar" aria-label="Toggle Menu Navigasi" class="text-slate-400 hover:text-slate-600 lg:hidden">
                     <i class="fas fa-bars"></i>
                 </button>
 
@@ -341,6 +345,8 @@
                 {{-- Bell notification --}}
                 <div x-data="bellNotif()" x-init="init()" class="relative">
                     <button @click="open = !open; if(open) fetchAlerts()"
+                            aria-label="Notifikasi"
+                            :aria-expanded="open"
                             class="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 transition text-slate-500">
                         <i class="fas fa-bell text-base"></i>
                         <span x-show="unreadCount > 0" x-cloak
@@ -387,7 +393,7 @@
                                 </div>
                             </template>
                             <template x-for="alert in alerts" :key="alert.id">
-                                <div class="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition"
+                                <a href="{{ route('alerts.index') }}" class="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition block"
                                      :class="!alert.is_read ? 'bg-indigo-50/60' : ''">
                                     <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
                                          :style="alert.alert_type === 'spike_up' ? 'background:#dcfce7' : (alert.alert_type === 'spike_down' ? 'background:#fee2e2' : 'background:#fef3c7')">
@@ -399,7 +405,7 @@
                                         <p class="text-[0.65rem] text-slate-400 mt-0.5" x-text="alert.triggered_at_human"></p>
                                     </div>
                                     <div x-show="!alert.is_read" class="w-2 h-2 rounded-full bg-indigo-500 mt-1 flex-shrink-0"></div>
-                                </div>
+                                </a>
                             </template>
                         </div>
 
@@ -454,31 +460,34 @@
         @if(session('success') || session('error') || session('warning'))
         <div class="flash-toast space-y-2" x-data x-init="setTimeout(() => $el.remove(), 5000)">
             @if(session('success'))
-            <div class="flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium"
-                 style="background:#fff; border-left:4px solid #22c55e; border:1px solid #bbf7d0;">
+            <div role="status" aria-live="polite" class="flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium"
+                 style="background:#fff; border:1px solid #bbf7d0; border-left:4px solid #22c55e;">
                 <i class="fas fa-check-circle text-green-500 flex-shrink-0"></i>
                 <span class="text-green-800">{{ session('success') }}</span>
+                <button type="button" @click="$el.parentElement.remove()" aria-label="Tutup pesan" class="ml-auto text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
             </div>
             @endif
             @if(session('error'))
-            <div class="flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium"
-                 style="background:#fff; border-left:4px solid #ef4444; border:1px solid #fecaca;">
+            <div role="alert" aria-live="polite" class="flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium"
+                 style="background:#fff; border:1px solid #fecaca; border-left:4px solid #ef4444;">
                 <i class="fas fa-exclamation-circle text-red-500 flex-shrink-0"></i>
                 <span class="text-red-800">{{ session('error') }}</span>
+                <button type="button" @click="$el.parentElement.remove()" aria-label="Tutup pesan" class="ml-auto text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
             </div>
             @endif
             @if(session('warning'))
-            <div class="flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium"
-                 style="background:#fff; border-left:4px solid #f59e0b; border:1px solid #fde68a;">
+            <div role="status" aria-live="polite" class="flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium"
+                 style="background:#fff; border:1px solid #fde68a; border-left:4px solid #f59e0b;">
                 <i class="fas fa-exclamation-triangle text-amber-500 flex-shrink-0"></i>
                 <span class="text-amber-800">{{ session('warning') }}</span>
+                <button type="button" @click="$el.parentElement.remove()" aria-label="Tutup pesan" class="ml-auto text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
             </div>
             @endif
         </div>
         @endif
 
         {{-- ── Page Content ── --}}
-        <main class="flex-1 overflow-auto @yield('content-class', 'p-6')">
+        <main id="main-content" class="flex-1 overflow-auto @yield('content-class', 'p-6')">
             @yield('content')
         </main>
 
@@ -490,7 +499,7 @@
 <script>
 function appShell() {
     return {
-        sidebar: localStorage.getItem('sw_sidebar') !== 'false',
+        sidebar: window.innerWidth >= 1024 ? localStorage.getItem('sw_sidebar') !== 'false' : false,
         init() { /* Alpine init hook */ },
         saveSidebar() {
             localStorage.setItem('sw_sidebar', this.sidebar);

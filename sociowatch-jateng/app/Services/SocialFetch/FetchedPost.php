@@ -16,5 +16,6 @@ final readonly class FetchedPost
         public int $comments,
         public int $views,
         public CarbonImmutable $postedAt,
+        public ?string $mediaUrl = null,
     ) {}
 }

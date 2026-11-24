@@ -11,7 +11,7 @@
 @section('content')
 <div class="max-w-lg">
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-5">
-        <form method="POST" action="{{ route('users.store') }}">
+        <form method="POST" action="{{ route('users.store') }}" class="space-y-4">
             @csrf
 
             <div>
@@ -31,28 +31,30 @@
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1">Role</label>
                 <select name="role" required
-                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none @error('role') border-red-400 @enderror">
                     <option value="viewer"     @selected(old('role')=='viewer')>Viewer</option>
                     <option value="admin"      @selected(old('role')=='admin')>Admin</option>
                     <option value="superadmin" @selected(old('role')=='superadmin')>Superadmin</option>
                 </select>
+                @error('role')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
-                <input type="password" name="password" required
+                <input type="password" name="password" required minlength="8"
                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none @error('password') border-red-400 @enderror">
                 @error('password')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1">Konfirmasi Password</label>
-                <input type="password" name="password_confirmation" required
+                <input type="password" name="password_confirmation" required minlength="8"
                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
             </div>
 
             <div class="flex items-center gap-2">
-                <input type="checkbox" name="is_active" value="1" id="is_active" checked class="rounded" style="accent-color:#4F46E5">
+                <input type="hidden" name="is_active" value="0">
+                <input type="checkbox" name="is_active" value="1" id="is_active" {{ old('is_active', '1') == '1' ? 'checked' : '' }} class="rounded" style="accent-color:#4F46E5">
                 <label for="is_active" class="text-sm text-slate-700">Aktifkan user</label>
             </div>
 

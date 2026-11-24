@@ -4,18 +4,18 @@
 @section('breadcrumb')<span class="text-slate-600">Analytics</span>@endsection
 
 @section('content')
-<div class="space-y-6" x-data="{ analyticsTab: 'followers' }">
+<div class="space-y-6" x-data="{ analyticsTab: '{{ request('tab') === 'content' ? 'content' : 'followers' }}' }" x-effect="if(analyticsTab==='content') $nextTick(() => { window.dispatchEvent(new Event('resize')); })">
 
 {{-- Tab switcher --}}
-<div class="flex gap-1 bg-white rounded-xl border border-gray-100 p-1 shadow-sm w-fit">
+<div class="flex gap-1 bg-white rounded-xl border border-gray-100 p-1 shadow-sm w-fit" role="tablist">
     <button @click="analyticsTab='followers'"
             :class="analyticsTab==='followers' ? 'bg-indigo-600 text-white shadow' : 'text-gray-500 hover:text-gray-700'"
-            class="px-4 py-1.5 rounded-lg text-sm font-medium transition">
+            class="px-4 py-1.5 rounded-lg text-sm font-medium transition" role="tab" :aria-selected="analyticsTab==='followers'">
         <i class="fas fa-chart-line mr-1.5"></i>Followers & Tren
     </button>
     <button @click="analyticsTab='content'"
             :class="analyticsTab==='content' ? 'bg-indigo-600 text-white shadow' : 'text-gray-500 hover:text-gray-700'"
-            class="px-4 py-1.5 rounded-lg text-sm font-medium transition">
+            class="px-4 py-1.5 rounded-lg text-sm font-medium transition" role="tab" :aria-selected="analyticsTab==='content'">
         <i class="fas fa-newspaper mr-1.5"></i>Analisis Konten
     </button>
 </div>
@@ -28,7 +28,7 @@
         ['Akun Aktif',       $totalAccounts,                         'fa-users',       '#4F46E5', '#eef2ff'],
         ['Total Followers',  number_format($totalFollowers),          'fa-heart',       '#ec4899', '#fdf2f8'],
         ['Alert (7 hari)',   $totalAlerts7d,                         'fa-bell',        '#f59e0b', '#fffbeb'],
-        ['Snapshot (30h)',   $snapshotCount,                         'fa-camera',      '#10b981', '#ecfdf5'],
+        ['Snapshot (30 Hari)', $snapshotCount,                         'fa-camera',      '#10b981', '#ecfdf5'],
     ] as [$label, $value, $icon, $color, $bg])
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center gap-4">
         <div class="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -281,9 +281,7 @@ $topKwIds  = $contentData['topKeywordIds'];
                 @forelse($kRank30 as $i => $kw)
                 @php
                 $prev7  = $kRank7->get($kw->id)?->total ?? 0;
-                $trendDir = $prev7 > 0
-                    ? ($kw->total_occurrences / max(1, ($kw->total_occurrences - $prev7 + $prev7)) > 1.1 ? 'up' : ($kw->total_occurrences < $prev7 ? 'down' : 'stable'))
-                    : 'stable';
+                $last7  = (int) ($kw->last_7d ?? 0); $ratio = $prev7 > 0 ? ($last7 / $prev7) : ($last7 > 0 ? 2.0 : 1.0); $trendDir = $ratio > 1.2 ? 'up' : ($ratio < 0.8 ? 'down' : 'flat');
                 $catColors = ['sensitif'=>'bg-red-100 text-red-700','negatif'=>'bg-orange-100 text-orange-700','netral'=>'bg-gray-100 text-gray-600','positif'=>'bg-green-100 text-green-700'];
                 @endphp
                 <tr class="hover:bg-gray-50 transition">
@@ -377,7 +375,7 @@ $topKwIds  = $contentData['topKeywordIds'];
 new Chart(document.getElementById('trendAggChart'), {
     type: 'line',
     data: {
-        labels: {!! $dailyTrend->map(fn($r) => '"' . \Carbon\Carbon::parse($r->date)->format('d M') . '"')->implode(',') !!},
+        labels: [{!! $dailyTrend->map(fn($r) => '"' . \Carbon\Carbon::parse($r->date)->format('d M') . '"')->implode(',') !!}],
         datasets: [{
             label: 'Total Followers',
             data: [{{ $dailyTrend->pluck('total')->implode(',') }}],
@@ -450,7 +448,7 @@ new Chart(document.getElementById('regionChart'), {
     const container = document.getElementById('wordCloudCanvas');
     if (!container) return;
     const max = {{ $kCloud->max('total') ?: 1 }};
-    const words = {!! $kCloud->map(fn($k) => json_encode(['word'=>$k->word,'total'=>$k->total,'color'=>$k->color]))->implode(',') !!};
+    const words = [{!! $kCloud->map(fn($k) => json_encode(['id' => $k->id, 'word' => $k->word, 'total' => $k->total, 'color' => $k->color]))->implode(',') !!}];
     container.style.display = 'flex';
     container.style.flexWrap = 'wrap';
     container.style.alignContent = 'center';
@@ -460,7 +458,7 @@ new Chart(document.getElementById('regionChart'), {
     words.forEach(w => {
         const size = Math.max(11, Math.min(42, 11 + (w.total / max) * 31));
         const span = document.createElement('a');
-        span.href = '/keywords/{{ 0 }}'; // placeholder, not clickable from here
+        span.href = w.id ? '/keywords/' + encodeURIComponent(w.id) : '/posts/search?q=' + encodeURIComponent(w.word);
         span.textContent = w.word;
         span.style.fontSize = size + 'px';
         span.style.color = w.color;
@@ -476,9 +474,9 @@ new Chart(document.getElementById('regionChart'), {
 @if($kTrend->isNotEmpty())
 (function() {
     const palette = ['#4F46E5','#ef4444','#22c55e','#f59e0b','#8b5cf6'];
-    const allDates = [...new Set(
+    const allDates = [...new Set([
         {!! collect($kTrend->flatten())->map(fn($r) => '"'.$r->date.'"')->implode(',') !!}
-    )].sort();
+    ])].sort();
     const kwData   = {!! $kTrend->keys()->map(fn($id) => $id)->values()->toJson() !!};
     const kwNames  = {!! $kRank30->whereIn('id', $topKwIds)->pluck('word','id')->toJson() !!};
     const kwColors = {!! $kRank30->whereIn('id', $topKwIds)->pluck('color','id')->toJson() !!};
@@ -513,10 +511,10 @@ new Chart(document.getElementById('regionChart'), {
 new Chart(document.getElementById('sentimentChart'), {
     type: 'doughnut',
     data: {
-        labels: {!! collect($sentiment)->keys()->map(fn($k) => '"' . ucfirst($k) . '"')->implode(',') !!},
+        labels: [{!! collect($sentiment)->keys()->map(fn($k) => '"' . ucfirst($k) . '"')->implode(',') !!}],
         datasets: [{
             data: [{{ collect($sentiment)->values()->implode(',') }}],
-            backgroundColor: {!! collect($sentiment)->keys()->map(fn($k) => '"' . ['sensitif'=>'#ef4444','negatif'=>'#f97316','netral'=>'#6b7280','positif'=>'#22c55e'][$k] . '"')->implode(',') !!},
+            backgroundColor: [{!! collect($sentiment)->keys()->map(fn($k) => '"' . (['sensitif'=>'#ef4444','negatif'=>'#f97316','netral'=>'#6b7280','positif'=>'#22c55e'][$k] ?? '#6b7280') . '"')->implode(',') !!}],
             borderWidth: 2, borderColor: '#fff'
         }]
     },

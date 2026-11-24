@@ -17,16 +17,30 @@ $pIcon = match($post->platform) {
     default     => ['fa-globe',     'background:#64748b'],
 };
 
-// Build highlighted content
+// Build highlighted content using single combined regex pass
+$keywordsSorted = $post->keywords->sortByDesc(fn($k) => strlen($k->word));
+$patternParts = [];
+$keywordMap = [];
+foreach ($keywordsSorted as $kw) {
+    $word = $kw->word;
+    if ($word !== '') {
+        $patternParts[] = preg_quote($word, '/');
+        $keywordMap[mb_strtolower($word)] = $kw;
+    }
+}
+
 $highlighted = e($post->content);
-foreach ($post->keywords->sortByDesc(fn($k) => strlen($k->word)) as $kw) {
-    $escaped = e($kw->word);
-    $color   = $kw->color;
-    $highlighted = str_ireplace(
-        $escaped,
-        '<mark style="background:' . $color . '22;color:' . $color . ';border-radius:3px;padding:0 2px;font-weight:600">' . $escaped . '</mark>',
-        $highlighted
-    );
+if (!empty($patternParts)) {
+    // Sort pattern parts by length descending to match longer keywords first
+    usort($patternParts, fn($a, $b) => mb_strlen($b) - mb_strlen($a));
+    $combinedPattern = '/(?<![\p{L}\p{N}_])(' . implode('|', $patternParts) . ')(?![\p{L}\p{N}_])/iu';
+    $highlighted = preg_replace_callback($combinedPattern, function($matches) use ($keywordMap) {
+        $matchedText = $matches[1];
+        $lower = mb_strtolower($matchedText);
+        $kw = $keywordMap[$lower] ?? null;
+        $color = $kw ? $kw->color : '#6b7280';
+        return '<mark style="background:' . $color . '22;color:' . $color . ';border-radius:3px;padding:0 2px;font-weight:600">' . e($matchedText) . '</mark>';
+    }, $highlighted);
 }
 @endphp
 
@@ -51,12 +65,16 @@ foreach ($post->keywords->sortByDesc(fn($k) => strlen($k->word)) as $kw) {
                         {{ $post->socialAccount->category->name }}
                     </span>
                     @endif
+                    @php $sentimentBadge = \App\Models\Post::sentimentBadge($post->sentiment ?? 'netral'); @endphp
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full {{ $sentimentBadge['bg'] }} {{ $sentimentBadge['text'] }}">
+                        {{ $sentimentBadge['label'] }}@if($post->sentiment_manual) <span class="font-normal opacity-75">(Manual)</span>@endif
+                    </span>
                 </div>
                 <p class="text-xs text-gray-400">
                     {{ $post->socialAccount->region->name ?? '-' }} ·
                     {{ $post->posted_at->format('d F Y, H:i') }} WIB
                     @if($post->post_url)
-                    · <a href="{{ $post->post_url }}" target="_blank" class="text-indigo-500 hover:underline">
+                    · <a href="{{ $post->post_url }}" target="_blank" rel="noopener noreferrer" class="text-indigo-500 hover:underline">
                         <i class="fas fa-external-link-alt mr-0.5"></i>Buka Link
                     </a>
                     @endif
@@ -97,13 +115,54 @@ foreach ($post->keywords->sortByDesc(fn($k) => strlen($k->word)) as $kw) {
         </div>
         @endif
 
+        {{-- Visual Media Preview --}}
+        @php
+        $isReel = in_array(strtolower((string) $post->media_type), ['reel', 'video']);
+        @endphp
+        @if($isReel)
+        <div class="mb-5 rounded-xl overflow-hidden bg-slate-900 border border-slate-800 p-5 text-white flex flex-col justify-between relative group">
+            @if($post->media_url)
+            <img src="{{ $post->media_url }}" alt="Reel Preview" referrerpolicy="no-referrer"
+                 class="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-105 transition duration-300"
+                 onerror="this.style.display='none'">
+            @endif
+            <div class="relative z-10 flex items-center justify-between mb-4">
+                <span class="bg-pink-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow flex items-center gap-1.5 uppercase tracking-wide">
+                    <i class="fas fa-film"></i> Reels Preview
+                </span>
+                @if($post->post_url)
+                <a href="{{ $post->post_url }}" target="_blank" rel="noopener noreferrer"
+                   class="bg-white/90 hover:bg-white text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1.5">
+                    Tonton di Instagram <i class="fas fa-external-link-alt text-[0.65rem]"></i>
+                </a>
+                @endif
+            </div>
+            <div class="relative z-10 flex items-center justify-center my-6">
+                <div class="w-16 h-16 rounded-full bg-white/20 border border-white/40 text-white flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:bg-pink-600 transition">
+                    <i class="fas fa-play text-xl ml-1"></i>
+                </div>
+            </div>
+            <div class="relative z-10 text-xs text-slate-300 flex items-center justify-between pt-2 border-t border-slate-800">
+                <span><i class="fas fa-video text-slate-400 mr-1.5"></i>Format Media: {{ ucfirst($post->media_type) }}</span>
+                <span>{{ number_format($post->likes_count) }} likes · {{ number_format($post->comments_count) }} komentar</span>
+            </div>
+        </div>
+        @elseif($post->media_url)
+        <div class="mb-5 rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+            <img src="{{ $post->media_url }}" alt="Gambar Postingan" referrerpolicy="no-referrer"
+                 class="w-full max-h-[480px] object-contain bg-slate-900"
+                 loading="lazy"
+                 onerror="this.onerror=null; this.parentElement.style.display='none';">
+        </div>
+        @endif
+
         {{-- Content with keyword highlighting --}}
-        <div class="bg-gray-50 rounded-xl p-4 text-sm text-gray-800 leading-relaxed">
+        <div class="bg-gray-50 rounded-xl p-4 text-sm text-gray-800 leading-relaxed whitespace-pre-line break-words">
             {!! $highlighted !!}
         </div>
 
         {{-- Engagement stats --}}
-        <div class="grid grid-cols-4 gap-3 mt-4 pt-4 border-t border-gray-100">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-gray-100">
             @foreach([
                 [$post->likes_count,    'Likes',      'fa-heart',   'text-red-500'],
                 [$post->comments_count, 'Comments',   'fa-comment', 'text-blue-500'],

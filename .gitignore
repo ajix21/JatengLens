@@ -1,0 +1,6 @@
+# Local sensitive documents, tunnel configs & DB backups
+*.docx
+sociowatch-jateng/config.yml
+sociowatch-jateng/SECURITY_AUDIT_REPORT_*.md
+sociowatch_backup*.sql
+.superpowers/

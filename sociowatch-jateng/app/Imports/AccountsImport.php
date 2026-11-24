@@ -55,6 +55,18 @@ class AccountsImport implements ToCollection, WithHeadingRow
             $category    = $this->categories->get($categoryKey);
             $region      = $this->regions->get($regionKey);
 
+            if (!$category) {
+                $this->errors[] = "Baris {$rowNum}: kategori '{$categoryKey}' tidak ditemukan.";
+                $this->skipped++;
+                continue;
+            }
+
+            if (!$region) {
+                $this->errors[] = "Baris {$rowNum}: wilayah '{$regionKey}' tidak ditemukan.";
+                $this->skipped++;
+                continue;
+            }
+
             SocialAccount::create([
                 'platform'        => $platform,
                 'username'        => $username,

@@ -91,3 +91,13 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 });
+
+// Browser Extension Sync Endpoints (protected by optional BROWSER_SYNC_TOKEN via X-Sync-Token header)
+Route::prefix('sync')
+    ->middleware(\App\Http\Middleware\VerifyBrowserSyncToken::class)
+    ->group(function () {
+        Route::get('/unsupported-accounts', [\App\Http\Controllers\Api\BrowserSyncController::class, 'unsupportedAccounts']);
+        Route::post('/instagram', [\App\Http\Controllers\Api\BrowserSyncController::class, 'syncInstagram']);
+        Route::post('/facebook', [\App\Http\Controllers\Api\BrowserSyncController::class, 'syncFacebook']);
+        Route::post('/report-status', [\App\Http\Controllers\Api\BrowserSyncController::class, 'reportStatus']);
+    });

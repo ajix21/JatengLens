@@ -36,20 +36,23 @@
     </div>
 
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
-         x-data="{ fileName: '' }">
+         x-data="{ dragging: false, fileName: '', submitting: false }">
         <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <i class="fas fa-upload text-indigo-500"></i> Upload File
         </h2>
-        <form method="POST" action="{{ route('posts.import.process') }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ route('posts.import.process') }}" enctype="multipart/form-data" @submit="submitting = true">
             @csrf
             <label for="fileInput"
-                   class="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-xl cursor-pointer transition border-gray-300 bg-gray-50 hover:bg-gray-100"
-                   @dragover.prevent @drop.prevent="fileName=$event.dataTransfer.files[0]?.name">
+                   class="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-xl cursor-pointer transition"
+                   @dragover.prevent="dragging = true"
+                   @dragleave.prevent="dragging = false"
+                   :class="dragging ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-400 hover:bg-indigo-50/30'"
+                   @drop.prevent="dragging = false; fileName = $event.dataTransfer.files[0]?.name || ''; $el.querySelector('input[type=file]').files = $event.dataTransfer.files">
                 <i class="fas fa-file-csv text-3xl text-gray-400 mb-2"></i>
                 <p class="text-sm text-gray-600 font-medium" x-text="fileName || 'Klik atau seret file CSV/Excel ke sini'"></p>
                 <p class="text-xs text-gray-400 mt-1">Format: .csv, .xlsx, .xls · Maks. 10MB</p>
                 <input id="fileInput" type="file" name="file" class="hidden" accept=".csv,.xlsx,.xls"
-                       @change="fileName=$event.target.files[0]?.name">
+                       @change="fileName = $event.target.files[0]?.name || ''">
             </label>
             @error('file')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
 
@@ -59,6 +62,8 @@
                     Batal
                 </a>
                 <button type="submit"
+                        :disabled="!fileName || submitting"
+                        :class="(!fileName || submitting) ? 'opacity-60 cursor-not-allowed' : ''"
                         class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium py-2.5 rounded-lg transition flex items-center justify-center gap-2">
                     <i class="fas fa-file-import"></i> Import Sekarang
                 </button>

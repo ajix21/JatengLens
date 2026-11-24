@@ -50,11 +50,11 @@ class RegionSeeder extends Seeder
             ['name' => 'Kota Tegal',       'type' => 'kota', 'latitude' => -6.8694, 'longitude' => 109.1402, 'geojson_key' => 'KOTA TEGAL'],
         ];
 
-        DB::table('regions')->insert(array_map(function ($region) {
-            return array_merge($region, [
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }, $regions));
+        foreach ($regions as $region) {
+            DB::table('regions')->updateOrInsert(
+                ['name' => $region['name']],
+                array_merge($region, ['created_at' => now(), 'updated_at' => now()])
+            );
+        }
     }
 }

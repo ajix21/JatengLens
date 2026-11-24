@@ -19,6 +19,7 @@
                 {{ session('new_token') }}
             </code>
             <button @click="navigator.clipboard.writeText('{{ session('new_token') }}')"
+                    onclick="navigator.clipboard.writeText('{{ session('new_token') }}'); this.innerHTML='<i class=\'fas fa-check\'></i> Tersalin!';"
                     class="flex-shrink-0 bg-green-600 text-white text-xs px-3 py-2 rounded-lg hover:bg-green-700 transition">
                 <i class="fas fa-copy mr-1"></i>Salin
             </button>
@@ -32,7 +33,7 @@
         <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <i class="fas fa-plus-circle text-indigo-500"></i> Buat Token Baru
         </h2>
-        <form method="POST" action="{{ route('api-tokens.store') }}" class="flex gap-3">
+        <form method="POST" action="{{ route('api-tokens.store') }}" class="flex flex-col sm:flex-row gap-3">
             @csrf
             <input type="text" name="name" placeholder="Nama token (contoh: Monitoring Bot, Scraper v1)"
                    required

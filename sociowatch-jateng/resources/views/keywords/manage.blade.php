@@ -7,7 +7,7 @@
 <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
 
 {{-- Left: list --}}
-<div class="xl:col-span-2 space-y-4">
+<div class="xl:col-span-2 space-y-4" x-data="{ kwSearch: '' }">
 
     {{-- Import errors --}}
     @if(session('import_errors'))
@@ -21,7 +21,10 @@
 
     {{-- Actions bar --}}
     <div class="flex flex-wrap items-center justify-between gap-2">
-        <span class="text-sm text-slate-500">{{ $keywords->count() }} keyword terdaftar</span>
+        <div class="flex items-center gap-3">
+            <span class="text-sm text-slate-500">{{ $keywords->count() }} keyword terdaftar</span>
+            <input type="text" x-model="kwSearch" placeholder="Cari keyword..." class="border border-gray-200 rounded-lg px-3 py-1 text-xs focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
         <div class="flex gap-2">
             <form method="POST" action="{{ route('keywords.rescan') }}"
                   onsubmit="return confirm('Scan ulang semua postingan? Proses ini mungkin memakan waktu.')">
@@ -35,12 +38,13 @@
             <form method="POST" action="{{ route('keywords.batch-import') }}" enctype="multipart/form-data"
                   class="flex items-center gap-2">
                 @csrf
-                <input type="file" name="file" accept=".csv,.txt" class="text-xs text-gray-600">
+                <input type="file" name="file" accept=".csv,.txt" required title="Format CSV: word,category,color" class="text-xs text-gray-600">
                 <button type="submit"
                         class="text-sm border border-gray-200 text-gray-600 hover:bg-gray-50 px-3 py-1.5 rounded-lg transition">
                     Import CSV
                 </button>
             </form>
+            @error('file')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
         </div>
     </div>
 
@@ -59,7 +63,7 @@
                 </thead>
                 <tbody class="divide-y divide-gray-50">
                     @forelse($keywords as $kw)
-                    <tr class="hover:bg-gray-50 transition {{ !$kw->is_active ? 'opacity-50' : '' }}">
+                    <tr class="hover:bg-gray-50 transition {{ !$kw->is_active ? 'opacity-50' : '' }}" x-show="!kwSearch || $el.dataset.word.includes(kwSearch.toLowerCase())" data-word="{{ strtolower($kw->word . ' ' . $kw->category) }}">
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-2">
                                 <span class="w-3 h-3 rounded-full flex-shrink-0" style="background:{{ $kw->color }}"></span>
@@ -89,14 +93,14 @@
                         </td>
                         <td class="px-4 py-3">
                             <div class="flex items-center justify-center gap-1">
-                                <button onclick="openEdit({{ $kw->id }}, '{{ addslashes($kw->word) }}', '{{ $kw->category }}', '{{ $kw->color }}')"
+                                <button onclick="openEditFromEl(this)" data-id="{{ $kw->id }}" data-word="{{ $kw->word }}" data-category="{{ $kw->category }}" data-color="{{ $kw->color }}" aria-label="Edit Keyword" title="Edit Keyword"
                                         class="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition">
                                     <i class="fas fa-pen text-xs"></i>
                                 </button>
                                 <form method="POST" action="{{ route('keywords.destroy', $kw) }}" class="inline"
                                       onsubmit="return confirm('Hapus keyword ini?')">
                                     @csrf @method('DELETE')
-                                    <button type="submit" class="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition">
+                                    <button type="submit" aria-label="Hapus Keyword" title="Hapus Keyword" class="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition">
                                         <i class="fas fa-trash text-xs"></i>
                                     </button>
                                 </form>
@@ -168,7 +172,7 @@
 </div>
 
 {{-- Edit modal --}}
-<div id="editModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,.5)">
+<div id="editModal" role="dialog" aria-modal="true" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,.5)">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
             <h3 class="font-semibold text-gray-800">Edit Keyword</h3>
@@ -215,6 +219,15 @@ function openEdit(id, word, category, color) {
     document.getElementById('editCategory').value = category;
     document.getElementById('editColor').value = color;
     document.getElementById('editModal').classList.remove('hidden');
+}
+
+function openEditFromEl(el) {
+    openEdit(
+        el.dataset.id,
+        el.dataset.word,
+        el.dataset.category,
+        el.dataset.color
+    );
 }
 </script>
 @endpush

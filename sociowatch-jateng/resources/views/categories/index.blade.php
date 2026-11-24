@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Manajemen Kategori — SocioWatch Jateng')
 @section('page-title', 'Manajemen Kategori')
+@section('breadcrumb')<span class="text-slate-600">Kategori</span>@endsection
 
 @section('content')
 <div class="space-y-5">
@@ -31,16 +32,16 @@
                 </div>
                 <div class="flex gap-1">
                     @can('can-edit')
-                    <a href="{{ route('categories.edit', $cat) }}"
+                    <a href="{{ route('categories.edit', $cat) }}" aria-label="Edit Kategori {{ $cat->name }}"
                        class="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition">
                         <i class="fas fa-pen text-xs"></i>
                     </a>
                     @endcan
                     @can('can-delete')
                     <form method="POST" action="{{ route('categories.destroy', $cat) }}" class="inline"
-                          onsubmit="return confirm('Hapus kategori ini?')">
+                          onsubmit="return confirm('Hapus kategori &quot;{{ $cat->name }}&quot; yang memiliki {{ $cat->social_accounts_count }} akun?')">
                         @csrf @method('DELETE')
-                        <button type="submit" class="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition">
+                        <button type="submit" class="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition" aria-label="Hapus Kategori {{ $cat->name }}">
                             <i class="fas fa-trash text-xs"></i>
                         </button>
                     </form>
@@ -54,16 +55,11 @@
                 <span class="text-sm text-gray-600">
                     <span class="font-bold text-gray-800">{{ $cat->social_accounts_count }}</span> akun
                 </span>
-                <div class="flex gap-1">
-                    @foreach(['#fff','#ffd','#ffa','#f66','#900'] as $i => $c)
-                    <div class="w-5 h-5 rounded" style="background:{{ $c }};opacity:{{ 0.3 + $i*0.17 }};border:1px solid {{ $cat->color }}33"></div>
-                    @endforeach
-                    <div class="w-5 h-5 rounded" style="background:{{ $cat->color }}"></div>
-                </div>
+                <a href="{{ route('accounts.index', ['category_id' => $cat->id]) }}" class="text-xs font-medium text-indigo-600 hover:text-indigo-800">Lihat akun →</a>
             </div>
         </div>
         @empty
-        <div class="col-span-3 text-center py-12 text-gray-400">
+        <div class="col-span-full text-center py-12 text-gray-400">
             <i class="fas fa-tags text-3xl mb-3 block"></i>
             Belum ada kategori. Tambahkan kategori pertama.
         </div>

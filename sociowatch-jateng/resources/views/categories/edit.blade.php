@@ -1,6 +1,7 @@
 @extends('layouts.app')
-@section('title', 'Edit Kategori')
-@section('page-title', 'Edit Kategori: {{ $category->name }}')
+@section('title', 'Edit Kategori — SocioWatch Jateng')
+@section('page-title', 'Edit Kategori: ' . $category->name)
+@section('breadcrumb')<a href="{{ route('categories.index') }}" class="hover:text-indigo-600">Kategori</a><span class="breadcrumb-sep">/</span><span class="text-slate-600">Edit</span>@endsection
 
 @section('content')
 <div class="max-w-lg">
@@ -11,16 +12,16 @@
         <i class="fas fa-tag text-indigo-500"></i> Edit Kategori
     </h3>
     <div>
-        <label class="block text-sm font-medium text-gray-600 mb-1">Nama Kategori <span class="text-red-500">*</span></label>
-        <input type="text" name="name" value="{{ old('name', $category->name) }}" required
+        <label for="name" class="block text-sm font-medium text-gray-600 mb-1">Nama Kategori <span class="text-red-500">*</span></label>
+        <input type="text" id="name" name="name" value="{{ old('name', $category->name) }}" required
                class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none {{ $errors->has('name') ? 'border-red-400' : '' }}">
         @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
     </div>
     <div x-data="{ color: '{{ old('color', $category->color) }}' }">
-        <label class="block text-sm font-medium text-gray-600 mb-1">Warna Marker <span class="text-red-500">*</span></label>
+        <label for="color_input" class="block text-sm font-medium text-gray-600 mb-1">Warna Marker <span class="text-red-500">*</span></label>
         <div class="flex items-center gap-3">
-            <input type="color" x-model="color" @input="$refs.colorText.value = color"
-                   :value="color" class="w-12 h-12 rounded-lg border border-gray-200 cursor-pointer p-1">
+            <input type="color" id="color_input" x-model="color" @input="$refs.colorText.value = color"
+                   class="w-12 h-12 rounded-lg border border-gray-200 cursor-pointer p-1">
             <input type="text" name="color" x-ref="colorText" :value="color" @input="color = $event.target.value"
                    maxlength="7" pattern="#[0-9A-Fa-f]{6}"
                    class="w-36 text-sm border border-gray-200 rounded-lg px-3 py-2.5 font-mono focus:ring-2 focus:ring-indigo-300 focus:outline-none">
@@ -33,11 +34,13 @@
                     style="background:{{ $preset }}"></button>
             @endforeach
         </div>
+        @error('color') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
     </div>
     <div>
-        <label class="block text-sm font-medium text-gray-600 mb-1">Deskripsi</label>
-        <textarea name="description" rows="3"
-                  class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none resize-none">{{ old('description', $category->description) }}</textarea>
+        <label for="description" class="block text-sm font-medium text-gray-600 mb-1">Deskripsi</label>
+        <textarea id="description" name="description" rows="3"
+                  class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none resize-none {{ $errors->has('description') ? 'border-red-400' : '' }}">{{ old('description', $category->description) }}</textarea>
+        @error('description') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
     </div>
     <div class="flex gap-3 pt-2">
         <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition">

@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Admin Akun — SocioWatch Jateng')
 @section('page-title', 'Data Admin / Operator Akun')
+@section('breadcrumb')<span class="text-slate-600">Data Admin / Operator</span>@endsection
 
 @section('content')
 <div class="space-y-5">
@@ -54,17 +55,19 @@
                                 <div>
                                     <p class="font-medium text-gray-800">{{ $admin->full_name }}</p>
                                     @if($admin->alias)<p class="text-xs text-gray-400">{{ $admin->alias }}</p>@endif
-                                    @if($admin->nik)<p class="text-xs text-gray-400">NIK: {{ $admin->nik }}</p>@endif
+                                    @if($admin->nik)<p class="text-xs text-gray-400">NIK: {{ \Illuminate\Support\Str::mask($admin->nik, '*', 4, -4) }}</p>@endif
                                 </div>
                             </div>
                         </td>
                         <td class="px-4 py-3 text-gray-600 text-xs space-y-0.5">
                             @if($admin->phone)<div><i class="fas fa-phone w-3 mr-1 text-gray-400"></i>{{ $admin->phone }}</div>@endif
                             @if($admin->email)<div><i class="fas fa-envelope w-3 mr-1 text-gray-400"></i>{{ $admin->email }}</div>@endif
+                            @if(!$admin->phone && !$admin->email)<span class="text-gray-300">—</span>@endif
                         </td>
                         <td class="px-4 py-3 text-gray-600 text-xs space-y-0.5">
                             @if($admin->occupation)<div>{{ $admin->occupation }}</div>@endif
                             @if($admin->affiliation)<div class="text-gray-400">{{ $admin->affiliation }}</div>@endif
+                            @if(!$admin->occupation && !$admin->affiliation)<span class="text-gray-300">—</span>@endif
                         </td>
                         <td class="px-4 py-3">
                             @if($admin->socialAccount)
@@ -80,16 +83,16 @@
                         <td class="px-4 py-3">
                             <div class="flex items-center justify-center gap-1">
                                 @can('can-edit')
-                                <a href="{{ route('admins.edit', $admin) }}" title="Edit"
+                                <a href="{{ route('admins.edit', $admin) }}" title="Edit Admin {{ $admin->full_name }}" aria-label="Edit Admin {{ $admin->full_name }}"
                                    class="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition">
                                     <i class="fas fa-pen text-xs"></i>
                                 </a>
                                 @endcan
                                 @can('can-delete')
                                 <form method="POST" action="{{ route('admins.destroy', $admin) }}" class="inline"
-                                      onsubmit="return confirm('Hapus data admin ini?')">
+                                      onsubmit="return confirm('Hapus data admin {{ $admin->full_name }}?')">
                                     @csrf @method('DELETE')
-                                    <button type="submit" class="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition">
+                                    <button type="submit" class="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition" aria-label="Hapus Admin {{ $admin->full_name }}">
                                         <i class="fas fa-trash text-xs"></i>
                                     </button>
                                 </form>

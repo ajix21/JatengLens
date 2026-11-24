@@ -1,0 +1,65 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sociowatch_app
+    restart: unless-stopped
+    mem_limit: 300m
+    ports:
+      - "${SOCIOWATCH_PORT:-8085}:80"
+    env_file:
+      - ./sociowatch-jateng/.env
+    environment:
+      - TZ=Asia/Jakarta
+      - RUN_SCHEDULER=true
+    volumes:
+      - ./sociowatch-jateng/.env:/var/www/html/.env:ro
+      - sociowatch_thumbnails:/var/www/html/storage/app/public/thumbnails
+      - sociowatch_logs:/var/www/html/storage/logs
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - sociowatch_net
+
+  # Ultra-lightweight MariaDB (~90-140MB RAM).
+  # Jika homelab Anda sudah punya container MariaDB/MySQL sendiri,
+  # hapus/comment service "db" ini dan arahkan DB_HOST di .env ke container DB tersebut.
+  db:
+    image: mariadb:10.11
+    container_name: sociowatch_db
+    restart: unless-stopped
+    mem_limit: 256m
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-sociowatch_jateng}
+      MYSQL_USER: ${DB_USERNAME:-sociowatch}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-ganti_password_kuat}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-ganti_root_password_kuat}
+      TZ: Asia/Jakarta
+    command: >
+      --innodb-buffer-pool-size=64M
+      --innodb-log-file-size=16M
+      --max-connections=30
+      --performance-schema=OFF
+      --table-open-cache=128
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - sociowatch_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sociowatch_net
+
+volumes:
+  sociowatch_db_data:
+  sociowatch_thumbnails:
+  sociowatch_logs:
+
+networks:
+  sociowatch_net:
+    driver: bridge

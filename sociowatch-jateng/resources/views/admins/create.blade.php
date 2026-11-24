@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Tambah Admin — SocioWatch Jateng')
 @section('page-title', 'Tambah Data Admin / Operator')
+@section('breadcrumb')<a href="{{ route('admins.index') }}" class="hover:text-indigo-600">Data Admin / Operator</a><span class="breadcrumb-sep">/</span><span class="text-slate-600">Tambah</span>@endsection
 
 @section('content')
 <div class="max-w-2xl">
@@ -37,42 +38,84 @@
             <label class="block text-sm font-medium text-gray-600 mb-1">Alias / Nama Panggilan</label>
             <input type="text" name="alias" value="{{ old('alias') }}"
                    class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+            @error('alias') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-600 mb-1">NIK</label>
-            <input type="text" name="nik" value="{{ old('nik') }}" maxlength="20" placeholder="16 digit NIK"
+            <input type="text" name="nik" value="{{ old('nik') }}" maxlength="20" inputmode="numeric" placeholder="16 digit NIK"
                    class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+            @error('nik') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1">No. KK (Kartu Keluarga)</label>
+            <input type="text" name="no_kk" value="{{ old('no_kk') }}" maxlength="20" inputmode="numeric" placeholder="16 digit No. KK"
+                   class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+            @error('no_kk') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-600 mb-1">No. HP / Telepon</label>
-            <input type="text" name="phone" value="{{ old('phone') }}"
+            <input type="tel" name="phone" value="{{ old('phone') }}"
                    class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+            @error('phone') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-600 mb-1">Email</label>
             <input type="email" name="email" value="{{ old('email') }}"
                    class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+            @error('email') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1">Status</label>
+            <input type="text" name="status" value="{{ old('status') }}" placeholder="Misal: Lajang / Menikah"
+                   class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+            @error('status') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1">Agama</label>
+            <input type="text" name="agama" value="{{ old('agama') }}" placeholder="Misal: Islam"
+                   class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+            @error('agama') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-600 mb-1">Tempat, Tanggal Lahir (TTL)</label>
+            <input type="text" name="ttl" value="{{ old('ttl') }}" placeholder="Misal: Semarang, 12 Mei 1998"
+                   class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+            @error('ttl') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-600 mb-1">Pekerjaan</label>
             <input type="text" name="occupation" value="{{ old('occupation') }}"
                    class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+            @error('occupation') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+        </div>
+
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-600 mb-1">Alamat Domisili / Tempat Tinggal</label>
+            <input type="text" name="alamat" value="{{ old('alamat') }}" placeholder="Alamat lengkap / domisili"
+                   class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+            @error('alamat') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
         </div>
 
         <div>
             <label class="block text-sm font-medium text-gray-600 mb-1">Afiliasi / Organisasi</label>
             <input type="text" name="affiliation" value="{{ old('affiliation') }}"
                    class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+            @error('affiliation') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
         </div>
 
         <div class="md:col-span-2">
             <label class="block text-sm font-medium text-gray-600 mb-1">Catatan</label>
             <textarea name="notes" rows="3" placeholder="Catatan tambahan tentang admin ini..."
                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none resize-none">{{ old('notes') }}</textarea>
+            @error('notes') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
         </div>
     </div>
 

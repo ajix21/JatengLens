@@ -18,47 +18,51 @@
         <form method="POST" action="{{ route('alerts.settings.save') }}" class="space-y-5">
             @csrf
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                    <label for="spike_up_threshold" class="block text-sm font-medium text-slate-700 mb-1">
                         Threshold Spike Naik (%)
                     </label>
                     <div class="relative">
-                        <input type="number" name="spike_up_threshold" step="0.1" min="0.1" max="999"
+                        <input id="spike_up_threshold" type="number" name="spike_up_threshold" step="0.1" min="0.1" max="999"
                                value="{{ old('spike_up_threshold', $global->spike_up_threshold) }}"
-                               class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+                               class="w-full border border-slate-200 rounded-xl pl-4 pr-9 py-2.5 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
                         <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
                     </div>
+                    @error('spike_up_threshold')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
                     <p class="text-xs text-slate-400 mt-1">Alert jika followers naik ≥ nilai ini</p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">
+                    <label for="spike_down_threshold" class="block text-sm font-medium text-slate-700 mb-1">
                         Threshold Spike Turun (%)
                     </label>
                     <div class="relative">
-                        <input type="number" name="spike_down_threshold" step="0.1" min="0.1" max="999"
+                        <input id="spike_down_threshold" type="number" name="spike_down_threshold" step="0.1" min="0.1" max="999"
                                value="{{ old('spike_down_threshold', $global->spike_down_threshold) }}"
-                               class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+                               class="w-full border border-slate-200 rounded-xl pl-4 pr-9 py-2.5 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
                         <span class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
                     </div>
+                    @error('spike_down_threshold')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
                     <p class="text-xs text-slate-400 mt-1">Alert jika followers turun ≥ nilai ini</p>
                 </div>
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">
+                <label for="milestone_values" class="block text-sm font-medium text-slate-700 mb-1">
                     Milestone Values <span class="text-slate-400 font-normal">(pisahkan dengan koma)</span>
                 </label>
-                <input type="text" name="milestone_values"
+                <input id="milestone_values" type="text" name="milestone_values"
                        value="{{ old('milestone_values', $global->milestone_values ? implode(', ', $global->milestone_values) : '') }}"
                        placeholder="1000, 5000, 10000, 50000, 100000"
                        class="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+                @error('milestone_values')<p class="text-xs text-red-500 mt-1">{{ $message }}</p>@enderror
                 <p class="text-xs text-slate-400 mt-1">Alert ketika followers melewati nilai ini</p>
             </div>
 
             <div class="flex items-center gap-2">
+                <input type="hidden" name="is_active" value="0">
                 <input type="checkbox" name="is_active" value="1" id="is_active"
-                       {{ $global->is_active ? 'checked' : '' }} class="rounded" style="accent-color:#4F46E5">
+                       {{ old('is_active', $global->is_active) ? 'checked' : '' }} class="rounded" style="accent-color:#4F46E5">
                 <label for="is_active" class="text-sm text-slate-700">Aktifkan sistem alert</label>
             </div>
 
@@ -71,14 +75,20 @@
     </div>
 
     {{-- Per-account overrides --}}
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6" x-data="{ q: '' }">
         <h3 class="font-semibold text-slate-800 mb-1">Override Per Akun</h3>
         <p class="text-xs text-slate-400 mb-4">Akun dengan setting sendiri akan mengabaikan setting global.</p>
+
+        <div class="mb-4">
+            <input type="text" x-model="q" placeholder="Cari akun berdasarkan username / display name..."
+                   class="w-full border border-slate-200 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+        </div>
 
         <div class="space-y-3">
             @foreach($accounts as $acc)
             @php $accSetting = $acc->alertSetting; @endphp
-            <div class="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
+            <div class="flex items-center justify-between py-3 border-b border-slate-50 last:border-0"
+                 x-show="!q || '{{ strtolower($acc->username . ' ' . $acc->display_name) }}'.includes(q.toLowerCase())">
                 <div>
                     <span class="font-medium text-slate-700 text-sm">{{ $acc->username }}</span>
                     <span class="text-xs text-slate-400 ml-2 uppercase">{{ $acc->platform }}</span>

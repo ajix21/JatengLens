@@ -19,7 +19,7 @@ use App\Http\Controllers\KeywordController;
 // ── Auth (guest only) ────────────────────────────────────────────────────────
 Route::middleware('guest')->group(function () {
     Route::get('/login',  [AuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 });
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
@@ -27,6 +27,8 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 Route::middleware('auth')->group(function () {
 
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::post('/briefings/generate', [DashboardController::class, 'generateBriefing'])
+        ->middleware('can:can-edit')->name('briefings.generate');
 
     // Map
     Route::prefix('map')->name('map.')->group(function () {
@@ -34,6 +36,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/markers',     [MapController::class, 'markers'])->name('markers');
         Route::get('/choropleth',  [MapController::class, 'choropleth'])->name('choropleth');
         Route::get('/region/{id}', [MapController::class, 'regionAccounts'])->name('region');
+    });
+
+    // Accounts import — static routes before resource to avoid {account} capture
+    Route::prefix('accounts')->name('accounts.')->group(function () {
+        Route::get('/import',          [ImportController::class, 'index'])->name('import');
+        Route::get('/import/template', [ImportController::class, 'downloadTemplate'])->name('import.template');
+        Route::post('/import/preview', [ImportController::class, 'preview'])->name('import.preview');
+        Route::post('/import',         [ImportController::class, 'import'])->name('import.process');
     });
 
     // Accounts / Categories / Admins
@@ -72,14 +82,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/settings/account/{account}',  [AlertController::class, 'saveAccountSetting'])->name('settings.account');
     });
     Route::get('/api/alerts/unread', [AlertController::class, 'unread'])->name('api.alerts.unread');
-
-    // Import routes
-    Route::prefix('accounts')->name('accounts.')->group(function () {
-        Route::get('/import',         [ImportController::class, 'index'])->name('import');
-        Route::get('/import/template',[ImportController::class, 'downloadTemplate'])->name('import.template');
-        Route::post('/import/preview',[ImportController::class, 'preview'])->name('import.preview');
-        Route::post('/import',        [ImportController::class, 'import'])->name('import.process');
-    });
 
     // Analytics
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics');

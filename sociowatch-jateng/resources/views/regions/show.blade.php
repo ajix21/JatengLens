@@ -1,6 +1,7 @@
 @extends('layouts.app')
-@section('title', '{{ $region->name }} — SocioWatch Jateng')
+@section('title', $region->name . ' — SocioWatch Jateng')
 @section('page-title', $region->name)
+@section('breadcrumb')<a href="{{ route('regions.index') }}" class="hover:text-indigo-600">Wilayah</a><span class="breadcrumb-sep">/</span><span class="text-slate-600">{{ $region->name }}</span>@endsection
 
 @section('content')
 <div class="space-y-5">
@@ -166,14 +167,16 @@
                             @endif
                         </td>
                         <td class="px-4 py-3 text-center">
-                            <a href="{{ route('accounts.show', $acc) }}"
+                            <a href="{{ route('accounts.show', $acc) }}" aria-label="Detail Akun {{ $acc->display_name }}"
                                class="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-lg transition inline-block">
                                 <i class="fas fa-eye text-xs"></i>
                             </a>
-                            <a href="{{ route('accounts.edit', $acc) }}"
+                            @can('can-edit')
+                            <a href="{{ route('accounts.edit', $acc) }}" aria-label="Edit Akun {{ $acc->display_name }}"
                                class="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition inline-block">
                                 <i class="fas fa-pen text-xs"></i>
                             </a>
+                            @endcan
                         </td>
                     </tr>
                     @empty
@@ -197,12 +200,18 @@
 
 @push('scripts')
 <script>
-const regionMap = L.map('regionMap', { zoomControl: false, attributionControl: false })
-    .setView([{{ $region->latitude }}, {{ $region->longitude }}], 10);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(regionMap);
+const regionMap = L.map('regionMap', {
+    zoomControl: false,
+    attributionControl: true,
+    scrollWheelZoom: false,
+}).setView([{{ $region->latitude }}, {{ $region->longitude }}], 10);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri',
+    maxZoom: 18,
+}).addTo(regionMap);
 L.control.zoom({ position: 'topright' }).addTo(regionMap);
 
-@foreach($accounts as $acc)
+@foreach($accounts as $idx => $acc)
 @if($acc->category)
 (function(){
     const color = '{{ $acc->category->color }}';
@@ -210,8 +219,8 @@ L.control.zoom({ position: 'topright' }).addTo(regionMap);
         html: `<div style="background:${color};width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>`,
         className: '', iconSize: [12,12], iconAnchor: [6,6]
     });
-    L.marker([{{ $region->latitude }}, {{ $region->longitude }}], { icon })
-     .bindPopup('<b>{{ addslashes($acc->display_name) }}</b><br>{{ '@' . $acc->username }}')
+    L.marker([{{ $region->latitude + ($idx * 0.002) }}, {{ $region->longitude + ($idx * 0.002) }}], { icon })
+     .bindPopup('<b>' + @js($acc->display_name) + '</b><br>' + @js('@' . $acc->username))
      .addTo(regionMap);
 })();
 @endif
@@ -219,6 +228,6 @@ L.control.zoom({ position: 'topright' }).addTo(regionMap);
 
 // Center marker for the region
 L.marker([{{ $region->latitude }}, {{ $region->longitude }}]).addTo(regionMap)
- .bindPopup('<b>{{ addslashes($region->name) }}</b>').openPopup();
+ .bindPopup('<b>' + @js($region->name) + '</b>').openPopup();
 </script>
 @endpush

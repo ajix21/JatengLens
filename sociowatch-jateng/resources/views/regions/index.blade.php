@@ -1,6 +1,7 @@
 @extends('layouts.app')
 @section('title', 'Rekapitulasi Wilayah — SocioWatch Jateng')
 @section('page-title', 'Rekapitulasi Wilayah Jawa Tengah')
+@section('breadcrumb')<span class="text-slate-600">Rekapitulasi Wilayah</span>@endsection
 
 @section('content')
 <div class="space-y-5">
@@ -14,7 +15,7 @@
         $kotaCount      = $regions->where('type', 'kota')->count();
         @endphp
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
-            <p class="text-2xl font-bold text-gray-800">35</p>
+            <p class="text-2xl font-bold text-gray-800">{{ $regions->count() }}</p>
             <p class="text-xs text-gray-400 mt-0.5">Total Wilayah</p>
         </div>
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
@@ -27,20 +28,34 @@
         </div>
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
             <p class="text-2xl font-bold text-amber-600">{{ $regions->where('social_accounts_count', '>', 0)->count() }}</p>
-            <p class="text-xs text-gray-400 mt-0.5">Wilayah Terdampak</p>
+            <p class="text-xs text-gray-400 mt-0.5">Wilayah Aktif</p>
         </div>
     </div>
 
-    {{-- Export buttons --}}
-    <div class="flex items-center justify-end gap-2">
-        <a href="{{ route('export.regions') }}"
-           class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-emerald-700 border border-emerald-200 hover:bg-emerald-50 transition">
-            <i class="fas fa-file-excel"></i> Export Excel
-        </a>
-        <a href="{{ route('export.regions.pdf') }}"
-           class="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 transition">
-            <i class="fas fa-file-pdf"></i> Export PDF
-        </a>
+    {{-- Export buttons & search/filter --}}
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3" x-data="{ q: '', rType: '' }">
+        <div class="flex items-center gap-2 flex-1 max-w-md">
+            <div class="relative flex-1">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400"><i class="fas fa-search text-xs"></i></span>
+                <input type="text" x-model="q" placeholder="Cari nama wilayah..."
+                       class="w-full pl-9 pr-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            </div>
+            <select x-model="rType" class="text-sm bg-white border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+                <option value="">Semua Tipe</option>
+                <option value="kabupaten">Kabupaten</option>
+                <option value="kota">Kota</option>
+            </select>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('export.regions') }}"
+               class="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-emerald-700 border border-emerald-200 hover:bg-emerald-50 transition">
+                <i class="fas fa-file-excel"></i> Export Excel
+            </a>
+            <a href="{{ route('export.regions.pdf') }}"
+               class="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium text-red-600 border border-red-200 hover:bg-red-50 transition">
+                <i class="fas fa-file-pdf"></i> Export PDF
+            </a>
+        </div>
     </div>
 
     {{-- Table --}}
@@ -57,9 +72,11 @@
                         <th class="text-center px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-50">
+                <tbody class="divide-y divide-gray-50" x-data>
                     @foreach($regions as $region)
-                    <tr class="hover:bg-gray-50 transition">
+                    <tr class="hover:bg-gray-50 transition"
+                        data-name="{{ strtolower($region->name) }}" data-type="{{ $region->type }}"
+                        x-show="(!q || $el.dataset.name.includes(q.toLowerCase())) && (!rType || $el.dataset.type === rType)">
                         <td class="px-4 py-3">
                             <a href="{{ route('regions.show', $region) }}"
                                class="font-medium text-gray-800 hover:text-indigo-600 transition">
@@ -94,11 +111,11 @@
                         </td>
                         <td class="px-4 py-3">
                             <div class="flex items-center justify-center gap-1">
-                                <a href="{{ route('regions.show', $region) }}" title="Detail Wilayah"
+                                <a href="{{ route('regions.show', $region) }}" title="Detail Wilayah" aria-label="Detail Wilayah {{ $region->name }}"
                                    class="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-lg transition">
                                     <i class="fas fa-eye text-xs"></i>
                                 </a>
-                                <a href="{{ route('map.index', ['region_id' => $region->id]) }}" title="Lihat di Peta"
+                                <a href="{{ route('map.index', ['region_id' => $region->id]) }}" title="Lihat di Peta" aria-label="Lihat di Peta {{ $region->name }}"
                                    class="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition">
                                     <i class="fas fa-map-marker-alt text-xs"></i>
                                 </a>

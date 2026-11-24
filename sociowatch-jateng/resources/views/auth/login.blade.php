@@ -60,36 +60,41 @@
 
             {{-- Error --}}
             @if ($errors->any())
-            <div class="mb-5 px-4 py-3 rounded-xl text-sm" style="background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); color:#fca5a5;">
+            <div role="alert" class="mb-5 px-4 py-3 rounded-xl text-sm" style="background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); color:#fca5a5;">
                 <i class="fas fa-exclamation-circle mr-2"></i>{{ $errors->first() }}
             </div>
             @endif
 
             {{-- Form --}}
-            <form method="POST" action="{{ route('login') }}" class="space-y-5">
+            <form method="POST" action="{{ route('login') }}" onsubmit="const b=this.querySelector('button[type=submit]'); b.disabled=true; b.style.opacity='0.7';" class="space-y-5">
                 @csrf
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
+                    <label for="email" class="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
                             <i class="fas fa-envelope text-sm"></i>
                         </span>
-                        <input type="email" name="email" value="{{ old('email') }}" required autofocus
+                        <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username"
                                class="input-dark w-full rounded-xl pl-10 pr-4 py-3 text-sm"
                                placeholder="email@sociowatch.id">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
+                    <label for="password" class="block text-sm font-medium text-slate-300 mb-1.5">Password</label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
                             <i class="fas fa-lock text-sm"></i>
                         </span>
-                        <input type="password" name="password" required
-                               class="input-dark w-full rounded-xl pl-10 pr-4 py-3 text-sm"
+                        <input id="password" type="password" name="password" required autocomplete="current-password"
+                               class="input-dark w-full rounded-xl pl-10 pr-10 py-3 text-sm"
                                placeholder="••••••••">
+                        <button type="button" aria-label="Tampilkan atau sembunyikan password"
+                                onclick="const p=document.getElementById('password'); const i=this.querySelector('i'); if(p.type==='password'){p.type='text';i.className='fas fa-eye-slash text-xs';}else{p.type='password';i.className='fas fa-eye text-xs';}"
+                                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200">
+                            <i class="fas fa-eye text-xs"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -106,7 +111,7 @@
             </form>
 
             {{-- Footer --}}
-            <p class="text-center text-xs text-slate-600 mt-8">
+            <p class="text-center text-xs text-slate-400 mt-8">
                 SocioWatch Jateng &copy; {{ date('Y') }} · Dinas Komunikasi & Informatika
             </p>
         </div>

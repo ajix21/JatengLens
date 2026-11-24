@@ -51,6 +51,7 @@
 
     {{-- Table --}}
     <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="overflow-x-auto">
         <table class="w-full text-sm">
             <thead style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
                 <tr>
@@ -88,7 +89,7 @@
                     </td>
                     <td class="px-5 py-3 text-slate-600 text-xs">
                         @if($log->target_type)
-                            {{ $log->target_type }} #{{ $log->target_id }}
+                            {{ class_basename($log->target_type) }} #{{ $log->target_id }}
                         @else
                             —
                         @endif
@@ -100,6 +101,7 @@
             @endforelse
             </tbody>
         </table>
+        </div>
         <div class="px-5 py-3 border-t border-slate-100">{{ $logs->links() }}</div>
     </div>
 </div>

@@ -57,8 +57,8 @@
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex flex-wrap gap-3 items-end justify-between">
         <form method="GET" class="flex flex-wrap gap-3 items-end">
             <div>
-                <label class="block text-xs font-medium text-slate-500 mb-1">Akun</label>
-                <select name="account_id" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+                <label for="filter_account_id" class="block text-xs font-medium text-slate-500 mb-1">Akun</label>
+                <select id="filter_account_id" name="account_id" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
                     <option value="">Semua Akun</option>
                     @foreach($accounts as $acc)
                         <option value="{{ $acc->id }}" @selected(request('account_id')==$acc->id)>{{ $acc->username }}</option>
@@ -66,8 +66,8 @@
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-medium text-slate-500 mb-1">Tipe</label>
-                <select name="type" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+                <label for="filter_type" class="block text-xs font-medium text-slate-500 mb-1">Tipe</label>
+                <select id="filter_type" name="type" class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
                     <option value="">Semua Tipe</option>
                     <option value="spike_up"   @selected(request('type')=='spike_up')>Spike Naik</option>
                     <option value="spike_down" @selected(request('type')=='spike_down')>Spike Turun</option>
@@ -75,13 +75,13 @@
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-medium text-slate-500 mb-1">Dari</label>
-                <input type="date" name="date_from" value="{{ request('date_from') }}"
+                <label for="filter_date_from" class="block text-xs font-medium text-slate-500 mb-1">Dari</label>
+                <input type="date" id="filter_date_from" name="date_from" value="{{ request('date_from') }}"
                        class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
             </div>
             <div>
-                <label class="block text-xs font-medium text-slate-500 mb-1">Sampai</label>
-                <input type="date" name="date_to" value="{{ request('date_to') }}"
+                <label for="filter_date_to" class="block text-xs font-medium text-slate-500 mb-1">Sampai</label>
+                <input type="date" id="filter_date_to" name="date_to" value="{{ request('date_to') }}"
                        class="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-300 focus:outline-none">
             </div>
             <div class="flex items-center gap-2 pt-4">
@@ -94,20 +94,28 @@
             <button type="submit" class="px-4 py-2 bg-slate-700 text-white rounded-lg text-sm hover:bg-slate-600">
                 <i class="fas fa-filter mr-1"></i>Filter
             </button>
+            @if(request()->hasAny(['account_id','type','date_from','date_to','unread']))
+            <a href="{{ route('alerts.index') }}" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-sm hover:bg-slate-300">
+                Reset
+            </a>
+            @endif
         </form>
 
-        @can('can-edit')
-        <form method="POST" action="{{ route('alerts.read-all') }}">
-            @csrf
-            <button type="submit" class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-indigo-600 border border-indigo-200 hover:bg-indigo-50">
-                <i class="fas fa-check-double"></i> Tandai Semua Dibaca
-            </button>
-        </form>
-        @endcan
+        <div class="flex items-center gap-2">
+            @can('can-edit')
+            <a href="{{ route('alerts.settings') }}" class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-700 border border-slate-200 hover:bg-slate-50"><i class="fas fa-sliders"></i> Pengaturan Alert</a>
+            <form method="POST" action="{{ route('alerts.read-all') }}" onsubmit="return confirm('Tandai semua notifikasi sebagai sudah dibaca?')">
+                @csrf
+                <button type="submit" class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-indigo-600 border border-indigo-200 hover:bg-indigo-50">
+                    <i class="fas fa-check-double"></i> Tandai Semua Dibaca
+                </button>
+            </form>
+            @endcan
+        </div>
     </div>
 
     {{-- Alert list --}}
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto">
         <table class="w-full text-sm">
             <thead style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
                 <tr>
@@ -123,13 +131,16 @@
             @forelse($alerts as $alert)
                 @php
                     $typeStyle = match($alert->alert_type) {
-                        'spike_up'   => ['bg:#dcfce7','color:#166534','icon'=>'fa-arrow-trend-up','label'=>'Spike Naik'],
-                        'spike_down' => ['bg:#fee2e2','color:#991b1b','icon'=>'fa-arrow-trend-down','label'=>'Spike Turun'],
-                        default      => ['bg:#ede9fe','color:#5b21b6','icon'=>'fa-trophy','label'=>'Milestone'],
+                        'spike_up'   => ['bg' => '#dcfce7', 'color' => '#166534', 'icon' => 'fa-arrow-trend-up',   'label' => 'Spike Naik'],
+                        'spike_down' => ['bg' => '#fee2e2', 'color' => '#991b1b', 'icon' => 'fa-arrow-trend-down', 'label' => 'Spike Turun'],
+                        default      => ['bg' => '#ede9fe', 'color' => '#5b21b6', 'icon' => 'fa-trophy',           'label' => 'Milestone'],
                     };
                 @endphp
-                <tr class="{{ !$alert->is_read ? 'bg-indigo-50/30' : '' }} hover:bg-slate-50 transition">
+                <tr class="{{ !$alert->is_read ? 'bg-indigo-50/30 border-l-4 border-l-indigo-500' : '' }} hover:bg-slate-50 transition">
                     <td class="px-5 py-3 text-slate-500 text-xs whitespace-nowrap">
+                        @if(!$alert->is_read)
+                        <span class="inline-block w-2 h-2 rounded-full bg-indigo-600 mr-1.5" title="Belum dibaca"></span><span class="sr-only">Belum dibaca</span>
+                        @endif
                         {{ $alert->triggered_at?->format('d/m/Y H:i') }}
                         <div class="text-slate-400">{{ $alert->triggered_at?->diffForHumans() }}</div>
                     </td>
@@ -171,7 +182,7 @@
                             @if(!$alert->is_read)
                             <form method="POST" action="{{ route('alerts.read', $alert) }}">
                                 @csrf
-                                <button type="submit" class="p-1.5 text-slate-400 hover:text-slate-600" title="Tandai dibaca">
+                                <button type="submit" aria-label="Tandai dibaca" class="p-1.5 text-slate-400 hover:text-slate-600" title="Tandai dibaca">
                                     <i class="fas fa-check text-xs"></i>
                                 </button>
                             </form>

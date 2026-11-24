@@ -2,10 +2,23 @@
 @section('title', 'Tambah Akun — SocioWatch Jateng')
 @section('page-title', 'Tambah Akun Sosmed')
 
+@section('breadcrumb')<a href="{{ route('accounts.index') }}" class="hover:text-indigo-600">Akun</a><span class="breadcrumb-sep">/</span><span class="text-slate-600">Tambah</span>@endsection
+
 @section('content')
-<form method="POST" action="{{ route('accounts.store') }}" x-data="adminSubForm({{ json_encode([['full_name'=>'','alias'=>'','nik'=>'','phone'=>'','email'=>'','occupation'=>'','affiliation'=>'','notes'=>'']]) }})">
+<form method="POST" action="{{ route('accounts.store') }}" x-data="adminSubForm(@js(old('admins', [['full_name'=>'','alias'=>'','nik'=>'','no_kk'=>'','status'=>'','agama'=>'','ttl'=>'','occupation'=>'','alamat'=>'','phone'=>'','email'=>'','affiliation'=>'','notes'=>'']])))">
 @csrf
 <div class="max-w-4xl space-y-6">
+
+    @if($errors->any())
+    <div role="alert" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+        <p class="font-semibold mb-1 flex items-center gap-1.5"><i class="fas fa-exclamation-circle"></i> Terdapat beberapa kesalahan pengisian:</p>
+        <ul class="list-disc list-inside space-y-0.5 text-xs">
+            @foreach($errors->all() as $error)
+            <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
 
     {{-- INFORMASI AKUN --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -72,19 +85,22 @@
             <div>
                 <label class="block text-sm font-medium text-gray-600 mb-1">Followers</label>
                 <input type="number" name="followers_count" value="{{ old('followers_count', 0) }}" min="0"
-                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none {{ $errors->has('followers_count') ? 'border-red-400' : '' }}">
+                @error('followers_count') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-600 mb-1">Following</label>
                 <input type="number" name="following_count" value="{{ old('following_count', 0) }}" min="0"
-                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none {{ $errors->has('following_count') ? 'border-red-400' : '' }}">
+                @error('following_count') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-600 mb-1">Jumlah Postingan</label>
                 <input type="number" name="post_count" value="{{ old('post_count', 0) }}" min="0"
-                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+                       class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none {{ $errors->has('post_count') ? 'border-red-400' : '' }}">
+                @error('post_count') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
 
             <div class="flex items-center gap-3 pt-2">
@@ -110,13 +126,15 @@
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-600 mb-1">Bio</label>
                 <textarea name="bio" rows="2" placeholder="Deskripsi singkat akun..."
-                          class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none resize-none">{{ old('bio') }}</textarea>
+                          class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none resize-none {{ $errors->has('bio') ? 'border-red-400' : '' }}">{{ old('bio') }}</textarea>
+                @error('bio') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
 
             <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-600 mb-1">Catatan Internal</label>
                 <textarea name="notes" rows="2" placeholder="Catatan monitoring..."
-                          class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none resize-none">{{ old('notes') }}</textarea>
+                          class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-indigo-300 focus:outline-none resize-none {{ $errors->has('notes') ? 'border-red-400' : '' }}">{{ old('notes') }}</textarea>
+                @error('notes') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
 
         </div>
@@ -136,7 +154,7 @@
 
         <template x-for="(admin, index) in admins" :key="index">
             <div class="border border-gray-100 rounded-xl p-4 mb-4 bg-gray-50 relative">
-                <button type="button" @click="removeAdmin(index)"
+                <button type="button" @click="removeAdmin(index)" aria-label="Hapus admin"
                         class="absolute top-3 right-3 text-red-400 hover:text-red-600 hover:bg-red-50 w-7 h-7 rounded-lg flex items-center justify-center text-xs transition">
                     <i class="fas fa-times"></i>
                 </button>
@@ -146,22 +164,47 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div class="md:col-span-2">
                         <label class="block text-xs font-medium text-gray-500 mb-1">Nama Lengkap <span class="text-red-500">*</span></label>
-                        <input type="text" :name="`admins[${index}][full_name]`" x-model="admin.full_name"
+                        <input type="text" :name="`admins[${index}][full_name]`" x-model="admin.full_name" required
                                class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Alias</label>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Alias / Nama Panggilan</label>
                         <input type="text" :name="`admins[${index}][alias]`" x-model="admin.alias"
                                class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white">
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-500 mb-1">NIK</label>
-                        <input type="text" :name="`admins[${index}][nik]`" x-model="admin.nik" maxlength="20"
+                        <input type="text" :name="`admins[${index}][nik]`" x-model="admin.nik" maxlength="20" placeholder="16 digit NIK"
                                class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">No. HP</label>
-                        <input type="text" :name="`admins[${index}][phone]`" x-model="admin.phone"
+                        <label class="block text-xs font-medium text-gray-500 mb-1">No. KK (Kartu Keluarga)</label>
+                        <input type="text" :name="`admins[${index}][no_kk]`" x-model="admin.no_kk" maxlength="20" placeholder="16 digit No. KK"
+                               class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
+                        <input type="text" :name="`admins[${index}][status]`" x-model="admin.status" placeholder="Misal: Lajang / Menikah"
+                               class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Agama</label>
+                        <input type="text" :name="`admins[${index}][agama]`" x-model="admin.agama" placeholder="Misal: Islam"
+                               class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Tempat, Tanggal Lahir (TTL)</label>
+                        <input type="text" :name="`admins[${index}][ttl]`" x-model="admin.ttl" placeholder="Misal: Semarang, 12 Mei 1998"
+                               class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Pekerjaan</label>
+                        <input type="text" :name="`admins[${index}][occupation]`" x-model="admin.occupation" placeholder="Misal: Mahasiswa / Swasta"
+                               class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">No. HP / WhatsApp</label>
+                        <input type="text" :name="`admins[${index}][phone]`" x-model="admin.phone" placeholder="08xxxxxxxx"
                                class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white">
                     </div>
                     <div>
@@ -169,19 +212,19 @@
                         <input type="email" :name="`admins[${index}][email]`" x-model="admin.email"
                                class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white">
                     </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Pekerjaan</label>
-                        <input type="text" :name="`admins[${index}][occupation]`" x-model="admin.occupation"
-                               class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white">
-                    </div>
                     <div class="md:col-span-2">
                         <label class="block text-xs font-medium text-gray-500 mb-1">Afiliasi / Organisasi</label>
-                        <input type="text" :name="`admins[${index}][affiliation]`" x-model="admin.affiliation"
+                        <input type="text" :name="`admins[${index}][affiliation]`" x-model="admin.affiliation" placeholder="Misal: BEM KM / LBH / Ormas"
                                class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white">
                     </div>
                     <div class="md:col-span-3">
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Catatan</label>
-                        <textarea :name="`admins[${index}][notes]`" x-model="admin.notes" rows="2"
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Alamat Domisili / Tempat Tinggal</label>
+                        <input type="text" :name="`admins[${index}][alamat]`" x-model="admin.alamat" placeholder="Alamat lengkap / jalan / kelurahan / kecamatan"
+                               class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white">
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Catatan (Data Lain)</label>
+                        <textarea :name="`admins[${index}][notes]`" x-model="admin.notes" rows="2" placeholder="Catatan data lain, peran admin, atau rekam jejak"
                                   class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none resize-none bg-white"></textarea>
                     </div>
                 </div>
@@ -214,7 +257,7 @@ function adminSubForm(initialAdmins) {
     return {
         admins: initialAdmins,
         addAdmin() {
-            this.admins.push({ full_name:'', alias:'', nik:'', phone:'', email:'', occupation:'', affiliation:'', notes:'' });
+            this.admins.push({ full_name:'', alias:'', nik:'', no_kk:'', status:'', agama:'', ttl:'', occupation:'', alamat:'', phone:'', email:'', affiliation:'', notes:'' });
         },
         removeAdmin(index) {
             this.admins.splice(index, 1);

@@ -34,16 +34,22 @@ class AccountController extends Controller
         'admins.*.full_name'          => 'required_with:admins.*|string|max:255',
         'admins.*.alias'              => 'nullable|string|max:255',
         'admins.*.nik'                => 'nullable|string|max:20',
+        'admins.*.no_kk'              => 'nullable|string|max:20',
+        'admins.*.status'             => 'nullable|string|max:100',
+        'admins.*.agama'              => 'nullable|string|max:50',
+        'admins.*.ttl'                => 'nullable|string|max:255',
+        'admins.*.occupation'         => 'nullable|string|max:255',
+        'admins.*.alamat'             => 'nullable|string',
         'admins.*.phone'              => 'nullable|string|max:30',
         'admins.*.email'              => 'nullable|email|max:255',
-        'admins.*.occupation'         => 'nullable|string|max:255',
         'admins.*.affiliation'        => 'nullable|string|max:255',
         'admins.*.notes'              => 'nullable|string',
     ];
 
     public function index(Request $request)
     {
-        $query = SocialAccount::with(['category:id,name,color', 'region:id,name']);
+        $query = SocialAccount::with(['category:id,name,color', 'region:id,name'])
+            ->withCount('admins');
 
         if ($request->search) {
             $s = $request->search;
@@ -59,12 +65,38 @@ class AccountController extends Controller
             $query->where('is_active', (bool) $request->status);
         }
 
-        $accounts   = $query->latest()->paginate(15)->withQueryString();
-        $categories = Category::orderBy('name')->get();
-        $regions    = Region::orderBy('name')->get();
-        $platforms  = $this->platforms;
+        if ($request->fetch_mode) {
+            match ($request->fetch_mode) {
+                'api' => $query->whereIn('platform', ['instagram', 'youtube'])->where('auto_fetch', true),
+                'extension' => $query->where('platform', 'instagram')->where(function ($q) {
+                    $q->where('last_fetch_status', FetchStatus::Unsupported)
+                      ->orWhere(function ($q2) {
+                          $q2->where('auto_fetch', false)
+                             ->where(function ($q3) {
+                                 $q3->whereNull('last_fetch_status')
+                                    ->orWhere('last_fetch_status', '!=', FetchStatus::NotFound);
+                             });
+                      });
+                }),
+                'not_found' => $query->where('last_fetch_status', FetchStatus::NotFound),
+                'manual' => $query->whereNotIn('platform', ['instagram', 'youtube']),
+                default => null,
+            };
+        }
 
-        return view('accounts.index', compact('accounts', 'categories', 'regions', 'platforms'));
+        if ($request->admin_status === 'missing') {
+            $query->doesntHave('admins');
+        } elseif ($request->admin_status === 'has_admin') {
+            $query->has('admins');
+        }
+
+        $accounts          = $query->latest()->paginate(15)->withQueryString();
+        $categories        = Category::orderBy('name')->get();
+        $regions           = Region::orderBy('name')->get();
+        $platforms         = $this->platforms;
+        $missingAdminCount = SocialAccount::where('is_active', true)->doesntHave('admins')->count();
+
+        return view('accounts.index', compact('accounts', 'categories', 'regions', 'platforms', 'missingAdminCount'));
     }
 
     public function create()
@@ -104,6 +136,8 @@ class AccountController extends Controller
             $q->latest('logged_at')->take(20);
         }]);
 
+        $posts = $account->posts()->with('keywords')->take(6)->get();
+
         $snapshots30 = $account->followerSnapshots()
             ->where('recorded_at', '>=', now()->subDays(30))
             ->orderBy('recorded_at')
@@ -127,7 +161,7 @@ class AccountController extends Controller
         $globalSetting = \App\Models\AlertSetting::global();
 
         return view('accounts.show', compact(
-            'account', 'snapshots30', 'change7d', 'change30d', 'recentAlerts', 'globalSetting'
+            'account', 'posts', 'snapshots30', 'change7d', 'change30d', 'recentAlerts', 'globalSetting'
         ));
     }
 

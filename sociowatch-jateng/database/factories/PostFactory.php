@@ -23,6 +23,8 @@ class PostFactory extends Factory
             'views_count' => 0,
             'posted_at' => fake()->dateTimeBetween('-30 days'),
             'is_flagged' => false,
+            'sentiment' => 'netral',
+            'sentiment_manual' => false,
         ];
     }
 }

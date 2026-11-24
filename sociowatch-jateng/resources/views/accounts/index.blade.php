@@ -1,24 +1,48 @@
 @extends('layouts.app')
 @section('title', 'Manajemen Akun — SocioWatch Jateng')
 @section('page-title', 'Manajemen Akun Sosmed')
+@section('breadcrumb')<span class="text-slate-600">Akun Sosmed</span>@endsection
 
 @section('content')
 <div class="space-y-5">
+
+    @php
+        $unsupportedIgCount = \App\Models\SocialAccount::where('platform', 'instagram')
+            ->where('is_active', true)
+            ->where('last_fetch_status', \App\Enums\FetchStatus::Unsupported)
+            ->count();
+    @endphp
+    @if($unsupportedIgCount > 0)
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 text-amber-900 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 text-amber-600">
+                <i class="fab fa-chrome text-lg"></i>
+            </div>
+            <div>
+                <p class="text-sm font-semibold">Terdapat {{ $unsupportedIgCount }} Akun Instagram Personal</p>
+                <p class="text-xs text-amber-700">Akun personal dibatasi oleh Meta Graph API. Gunakan <strong>Ekstensi Browser SocioWatch Companion</strong> untuk sinkronisasi otomatis 1-klik melalui sesi browser Anda.</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="text-xs px-3 py-1.5 bg-amber-200 text-amber-800 rounded-lg font-medium">Lokasi: /extension</span>
+        </div>
+    </div>
+    @endif
 
     {{-- TOOLBAR --}}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         <form method="GET" action="{{ route('accounts.index') }}" class="flex flex-wrap gap-3 items-end">
             <div class="flex-1 min-w-[200px]">
-                <label class="block text-xs font-medium text-gray-500 mb-1">Cari</label>
+                <label for="f_search" class="block text-xs font-medium text-gray-500 mb-1">Cari</label>
                 <div class="relative">
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Username / nama..."
+                    <input type="text" id="f_search" name="search" value="{{ request('search') }}" placeholder="Username / nama..."
                            class="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-300 focus:outline-none">
                     <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
                 </div>
             </div>
             <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Platform</label>
-                <select name="platform" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+                <label for="f_platform" class="block text-xs font-medium text-gray-500 mb-1">Platform</label>
+                <select id="f_platform" name="platform" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
                     <option value="">Semua</option>
                     @foreach($platforms as $p)
                     <option value="{{ $p }}" {{ request('platform') == $p ? 'selected' : '' }}>{{ ucfirst($p) }}</option>
@@ -26,8 +50,8 @@
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Kategori</label>
-                <select name="category_id" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+                <label for="f_category" class="block text-xs font-medium text-gray-500 mb-1">Kategori</label>
+                <select id="f_category" name="category_id" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
                     <option value="">Semua</option>
                     @foreach($categories as $cat)
                     <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
@@ -35,8 +59,8 @@
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Wilayah</label>
-                <select name="region_id" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+                <label for="f_region" class="block text-xs font-medium text-gray-500 mb-1">Wilayah</label>
+                <select id="f_region" name="region_id" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
                     <option value="">Semua</option>
                     @foreach($regions as $reg)
                     <option value="{{ $reg->id }}" {{ request('region_id') == $reg->id ? 'selected' : '' }}>{{ $reg->name }}</option>
@@ -44,11 +68,29 @@
                 </select>
             </div>
             <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
-                <select name="status" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+                <label for="f_status" class="block text-xs font-medium text-gray-500 mb-1">Status</label>
+                <select id="f_status" name="status" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
                     <option value="">Semua</option>
                     <option value="1" {{ request('status') === '1' ? 'selected' : '' }}>Aktif</option>
                     <option value="0" {{ request('status') === '0' ? 'selected' : '' }}>Nonaktif</option>
+                </select>
+            </div>
+            <div>
+                <label for="f_fetch_mode" class="block text-xs font-medium text-gray-500 mb-1">Metode Fetch</label>
+                <select id="f_fetch_mode" name="fetch_mode" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+                    <option value="">Semua</option>
+                    <option value="api" {{ request('fetch_mode') === 'api' ? 'selected' : '' }}>Meta API (Auto)</option>
+                    <option value="extension" {{ request('fetch_mode') === 'extension' ? 'selected' : '' }}>Ekstensi Browser</option>
+                    <option value="not_found" {{ request('fetch_mode') === 'not_found' ? 'selected' : '' }}>Tidak Ditemukan</option>
+                    <option value="manual" {{ request('fetch_mode') === 'manual' ? 'selected' : '' }}>Manual / Non-API</option>
+                </select>
+            </div>
+            <div>
+                <label for="f_admin_status" class="block text-xs font-medium text-gray-500 mb-1">Data Admin</label>
+                <select id="f_admin_status" name="admin_status" class="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none">
+                    <option value="">Semua</option>
+                    <option value="missing" {{ request('admin_status') === 'missing' ? 'selected' : '' }}>Belum Ada Admin ({{ $missingAdminCount ?? 0 }})</option>
+                    <option value="has_admin" {{ request('admin_status') === 'has_admin' ? 'selected' : '' }}>Sudah Ada Admin</option>
                 </select>
             </div>
             <div class="flex gap-2">
@@ -61,7 +103,7 @@
             </div>
             {{-- Export buttons --}}
             <div class="ml-auto flex items-center gap-2">
-                @php $exportParams = http_build_query(array_filter(request()->only(['platform','category_id','region_id','status']))) @endphp
+                @php $exportParams = http_build_query(array_filter(request()->only(['search', 'platform', 'category_id', 'region_id', 'status', 'fetch_mode', 'admin_status']))) @endphp
                 <a href="{{ route('export.accounts') }}?{{ $exportParams }}"
                    class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-emerald-700 border border-emerald-200 hover:bg-emerald-50 transition">
                     <i class="fas fa-file-excel"></i> Excel
@@ -106,7 +148,18 @@
                                 </div>
                                 <div class="min-w-0">
                                     <a href="{{ route('accounts.show', $acc) }}" class="font-medium text-gray-800 hover:text-indigo-600 truncate block">{{ $acc->display_name }}</a>
-                                    <span class="text-xs text-gray-400">{{ '@' . $acc->username }}</span>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="text-xs text-gray-400">{{ '@' . $acc->username }}</span>
+                                        @if(($acc->admins_count ?? 0) > 0)
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-medium">
+                                            <i class="fas fa-user-shield mr-0.5"></i>{{ $acc->admins_count }} Admin
+                                        </span>
+                                        @else
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 font-medium">
+                                            Belum Ada Admin
+                                        </span>
+                                        @endif
+                                    </div>
                                     @include('accounts._fetch-status', ['account' => $acc])
                                 </div>
                             </div>
@@ -135,22 +188,22 @@
                         <td class="px-4 py-3">
                             <div class="flex items-center justify-center gap-1">
                                 <a href="{{ route('map.index', ['region_id' => $acc->region_id]) }}"
-                                   title="Lihat di Peta"
-                                   class="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition">
+                                   title="Lihat di Peta" aria-label="Lihat di Peta"
+                                   class="min-w-[34px] min-h-[34px] inline-flex items-center justify-center p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition">
                                     <i class="fas fa-map-marker-alt text-xs"></i>
                                 </a>
-                                <a href="{{ route('accounts.show', $acc) }}" title="Detail"
-                                   class="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-lg transition">
+                                <a href="{{ route('accounts.show', $acc) }}" title="Detail" aria-label="Detail"
+                                   class="min-w-[34px] min-h-[34px] inline-flex items-center justify-center p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-lg transition">
                                     <i class="fas fa-eye text-xs"></i>
                                 </a>
                                 @can('can-edit')
-                                <button type="button" title="Update Stats"
-                                        onclick="openStatsModal({{ $acc->id }}, '{{ addslashes($acc->display_name) }}', {{ $acc->followers_count }}, {{ $acc->following_count }}, {{ $acc->post_count }})"
-                                        class="p-1.5 text-green-500 hover:bg-green-50 rounded-lg transition">
+                                <button type="button" title="Update Stats" aria-label="Update Stats"
+                                        data-account-id="{{ $acc->id }}" data-account-name="{{ $acc->display_name }}" data-followers="{{ $acc->followers_count }}" data-following="{{ $acc->following_count }}" data-posts="{{ $acc->post_count }}" onclick="openStatsModalFromEl(this)"
+                                        class="min-w-[34px] min-h-[34px] inline-flex items-center justify-center p-1.5 text-green-500 hover:bg-green-50 rounded-lg transition">
                                     <i class="fas fa-sync-alt text-xs"></i>
                                 </button>
-                                <a href="{{ route('accounts.edit', $acc) }}" title="Edit"
-                                   class="p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition">
+                                <a href="{{ route('accounts.edit', $acc) }}" title="Edit" aria-label="Edit"
+                                   class="min-w-[34px] min-h-[34px] inline-flex items-center justify-center p-1.5 text-amber-500 hover:bg-amber-50 rounded-lg transition">
                                     <i class="fas fa-pen text-xs"></i>
                                 </a>
                                 @endcan
@@ -158,8 +211,8 @@
                                 <form method="POST" action="{{ route('accounts.destroy', $acc) }}" class="inline"
                                       onsubmit="return confirm('Hapus akun ini?')">
                                     @csrf @method('DELETE')
-                                    <button type="submit" title="Hapus"
-                                            class="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition">
+                                    <button type="submit" title="Hapus" aria-label="Hapus"
+                                            class="min-w-[34px] min-h-[34px] inline-flex items-center justify-center p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition">
                                         <i class="fas fa-trash text-xs"></i>
                                     </button>
                                 </form>
@@ -172,6 +225,13 @@
                         <td colspan="6" class="px-4 py-12 text-center text-gray-400">
                             <i class="fas fa-inbox text-3xl mb-3 block"></i>
                             Tidak ada data akun yang ditemukan.
+                            @if(request()->hasAny(['search', 'platform', 'category_id', 'region_id', 'status']))
+                            <div class="mt-3">
+                                <a href="{{ route('accounts.index') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 transition">
+                                    <i class="fas fa-redo"></i> Reset Filter
+                                </a>
+                            </div>
+                            @endif
                         </td>
                     </tr>
                     @endforelse
@@ -189,17 +249,19 @@
 
 {{-- Update Stats Modal --}}
 @can('can-edit')
-<div id="modalQuickStats" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4"
-     style="background:rgba(0,0,0,.5)">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+<div id="statsModal" role="dialog" aria-modal="true" aria-labelledby="modalAccountName" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4"
+     style="background:rgba(0,0,0,.5)"
+     @keydown.escape.window="document.getElementById('statsModal').classList.add('hidden')"
+     @click.self="document.getElementById('statsModal').classList.add('hidden')">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm" @click.stop>
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
             <div>
-                <h3 class="font-semibold text-gray-800 flex items-center gap-2">
+                <h3 id="modalAccountName" class="font-semibold text-gray-800 flex items-center gap-2">
                     <i class="fas fa-sync-alt text-green-500"></i> Update Stats
                 </h3>
                 <p id="modalStatsName" class="text-xs text-gray-400 mt-0.5"></p>
             </div>
-            <button onclick="document.getElementById('modalQuickStats').classList.add('hidden')"
+            <button onclick="document.getElementById('statsModal').classList.add('hidden')"
                     class="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
         </div>
         <form id="formQuickStats" method="POST" action="">
@@ -222,7 +284,7 @@
                 </div>
             </div>
             <div class="flex gap-3 px-6 pb-5">
-                <button type="button" onclick="document.getElementById('modalQuickStats').classList.add('hidden')"
+                <button type="button" onclick="document.getElementById('statsModal').classList.add('hidden')"
                         class="flex-1 border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm font-medium py-2 rounded-lg transition">
                     Batal
                 </button>
@@ -240,13 +302,18 @@
 
 @push('scripts')
 <script>
-function openStatsModal(id, name, followers, following, post) {
+function openStatsModalFromEl(el) {
+    const id = el.dataset.accountId;
+    const name = el.dataset.accountName;
+    const followers = el.dataset.followers;
+    const following = el.dataset.following;
+    const post = el.dataset.posts;
     document.getElementById('formQuickStats').action = '/accounts/' + id + '/update-stats';
     document.getElementById('modalStatsName').textContent = name;
     document.getElementById('statsFollowers').value = followers;
     document.getElementById('statsFollowing').value = following;
     document.getElementById('statsPost').value = post;
-    document.getElementById('modalQuickStats').classList.remove('hidden');
+    document.getElementById('statsModal').classList.remove('hidden');
 }
 </script>
 @endpush

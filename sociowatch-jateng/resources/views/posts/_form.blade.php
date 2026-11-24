@@ -51,15 +51,17 @@
                 <h3 class="font-semibold text-gray-700 flex items-center gap-2">
                     <i class="fas fa-align-left text-indigo-500"></i> Konten Postingan
                 </h3>
-                <button type="button" @click="detectKeywords"
-                        class="flex items-center gap-1.5 text-xs bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 px-3 py-1.5 rounded-lg transition">
-                    <i class="fas fa-magic"></i> Deteksi Keyword Otomatis
+                <button type="button" @click="detectKeywords" :disabled="detecting"
+                        class="flex items-center gap-1.5 text-xs bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 px-3 py-1.5 rounded-lg transition disabled:opacity-50">
+                    <i class="fas fa-magic"></i> <span x-text="detecting ? 'Mendeteksi...' : 'Deteksi Keyword Otomatis'"></span>
                 </button>
             </div>
             <textarea name="content" rows="6" required x-model="content"
                       placeholder="Masukkan isi teks postingan…"
                       class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500 resize-none">{{ old('content', $post?->content) }}</textarea>
             @error('content')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+
+            <p x-show="detectMessage && !detectedKeywords.length" x-text="detectMessage" class="text-xs text-gray-500 mt-2"></p>
 
             {{-- Keyword detection result --}}
             <div x-show="detectedKeywords.length > 0" x-cloak class="mt-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
@@ -82,10 +84,10 @@
                 <i class="fas fa-chart-bar text-indigo-500"></i> Engagement
             </h3>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                @foreach([['likes_count','Likes','fa-heart','red'],['comments_count','Comments','fa-comment','blue'],['shares_count','Shares','fa-share','green'],['views_count','Views','fa-eye','gray']] as [$field,$label,$icon,$color])
+                @foreach([['likes_count','Likes','fa-heart','text-red-500'],['comments_count','Comments','fa-comment','text-blue-500'],['shares_count','Shares','fa-share','text-green-500'],['views_count','Views','fa-eye','text-gray-500']] as [$field,$label,$icon,$colorClass])
                 <div>
                     <label class="block text-xs font-medium text-gray-600 mb-1">
-                        <i class="fas {{ $icon }} text-{{ $color }}-400 mr-1"></i>{{ $label }}
+                        <i class="fas {{ $icon }} {{ $colorClass }} mr-1"></i>{{ $label }}
                     </label>
                     <input type="number" name="{{ $field }}" min="0"
                            value="{{ old($field, $post?->$field ?? 0) }}"
@@ -110,7 +112,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Tag Postingan</label>
-                    <div class="flex flex-wrap gap-1.5 mb-2">
+                    <div class="flex flex-wrap gap-1.5 mb-2" id="tagList">
                         @foreach($allTags as $tag)
                         <label class="flex items-center gap-1 cursor-pointer">
                             <input type="checkbox" name="tags[]" value="{{ $tag->name }}"
@@ -119,11 +121,35 @@
                             <span class="text-xs px-1.5 py-0.5 rounded-full text-white" style="background:{{ $tag->color }}">{{ $tag->name }}</span>
                         </label>
                         @endforeach
+                        <template x-for="(ct, idx) in customTags" :key="ct">
+                            <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                                <input type="checkbox" name="tags[]" :value="ct" checked class="sr-only peer">
+                                <span class="text-xs px-3 py-1 rounded-full border transition border-indigo-400 bg-indigo-50 text-indigo-700 font-semibold" x-text="'#' + ct + ' ×'" @click.prevent="customTags.splice(idx, 1)"></span>
+                            </label>
+                        </template>
                     </div>
                     <input type="text" placeholder="Tambah tag baru (Enter)"
                            @keydown.enter.prevent="addTag"
                            x-model="newTag"
                            class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div class="md:col-span-2">
+                    @php
+                    $selectedSentimentMode = old(
+                        'sentiment_mode',
+                        ($post && $post->sentiment_manual) ? ($post->sentiment ?? 'netral') : 'auto'
+                    );
+                    @endphp
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Mode Klasifikasi Sentimen</label>
+                    <select name="sentiment_mode"
+                            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="auto" {{ $selectedSentimentMode === 'auto' ? 'selected' : '' }}>Otomatis (Deteksi Kontekstual)</option>
+                        <option value="sensitif" {{ $selectedSentimentMode === 'sensitif' ? 'selected' : '' }}>Sensitif (Manual)</option>
+                        <option value="negatif" {{ $selectedSentimentMode === 'negatif' ? 'selected' : '' }}>Negatif (Manual)</option>
+                        <option value="netral" {{ $selectedSentimentMode === 'netral' ? 'selected' : '' }}>Netral (Manual)</option>
+                        <option value="positif" {{ $selectedSentimentMode === 'positif' ? 'selected' : '' }}>Positif (Manual)</option>
+                    </select>
+                    @error('sentiment_mode')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                 </div>
             </div>
         </div>
@@ -135,6 +161,7 @@
             </h3>
             <div class="space-y-3">
                 <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="hidden" name="is_flagged" value="0">
                     <input type="checkbox" name="is_flagged" value="1"
                            {{ old('is_flagged', $post?->is_flagged) ? 'checked' : '' }}
                            x-model="isFlagged"
@@ -173,10 +200,15 @@ function postForm() {
         content: @js(old('content', $post?->content ?? '')),
         isFlagged: {{ old('is_flagged', $post?->is_flagged ?? false) ? 'true' : 'false' }},
         detectedKeywords: [],
+        detecting: false,
+        detectMessage: '',
         newTag: '',
+        customTags: [],
 
         detectKeywords() {
             if (!this.content.trim()) return;
+            this.detecting = true;
+            this.detectMessage = '';
             fetch('{{ route('posts.detect-keywords') }}', {
                 method: 'POST',
                 headers: {
@@ -187,19 +219,24 @@ function postForm() {
                 body: JSON.stringify({ content: this.content })
             })
             .then(r => r.json())
-            .then(data => { this.detectedKeywords = data.keywords; });
+            .then(data => {
+                this.detectedKeywords = data.keywords;
+                this.detectMessage = this.detectedKeywords.length ? '' : 'Tidak ada keyword aktif yang cocok dengan konten.';
+            })
+            .catch(() => {
+                this.detectMessage = 'Gagal mendeteksi keyword.';
+            })
+            .finally(() => {
+                this.detecting = false;
+            });
         },
 
         addTag() {
-            if (!this.newTag.trim()) return;
-            // Dynamically create a hidden checkbox input
-            const input = document.createElement('input');
-            input.type  = 'checkbox';
-            input.name  = 'tags[]';
-            input.value = this.newTag.trim();
-            input.checked = true;
-            input.classList.add('hidden');
-            this.$el.closest('form').appendChild(input);
+            const t = this.newTag.trim();
+            if (!t) return;
+            if (!this.customTags.includes(t)) {
+                this.customTags.push(t);
+            }
             this.newTag = '';
         }
     }

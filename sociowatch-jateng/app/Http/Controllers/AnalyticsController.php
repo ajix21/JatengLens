@@ -113,18 +113,27 @@ class AnalyticsController extends Controller
             ->groupBy('keywords.id')
             ->get()->keyBy('id');
 
-        // Sentiment distribution (dominant keyword category per post)
-        $sentiment = DB::table('post_keyword_pivot as pkp')
-            ->join('keywords as k', 'k.id', '=', 'pkp.keyword_id')
-            ->join('posts as p', 'p.id', '=', 'pkp.post_id')
-            ->where('p.posted_at', '>=', $day30)
-            ->selectRaw('p.id as post_id, k.category, SUM(pkp.occurrence_count) as score')
-            ->groupBy('p.id', 'k.category')
-            ->get()
-            ->groupBy('post_id')
-            ->map(fn($rows) => $rows->sortByDesc('score')->first()?->category ?? 'netral')
-            ->countBy()
+        // Sentiment distribution from posts.sentiment (fallback to keyword pivot if empty)
+        $sentiment = Post::where('posted_at', '>=', $day30)
+            ->whereNotNull('sentiment')
+            ->selectRaw('sentiment, COUNT(*) as total')
+            ->groupBy('sentiment')
+            ->pluck('total', 'sentiment')
             ->toArray();
+
+        if (empty($sentiment)) {
+            $sentiment = DB::table('post_keyword_pivot as pkp')
+                ->join('keywords as k', 'k.id', '=', 'pkp.keyword_id')
+                ->join('posts as p', 'p.id', '=', 'pkp.post_id')
+                ->where('p.posted_at', '>=', $day30)
+                ->selectRaw('p.id as post_id, k.category, SUM(pkp.occurrence_count) as score')
+                ->groupBy('p.id', 'k.category')
+                ->get()
+                ->groupBy('post_id')
+                ->map(fn($rows) => $rows->sortByDesc('score')->first()?->category ?? 'netral')
+                ->countBy()
+                ->toArray();
+        }
 
         // Top engagement posts (30 days)
         $topEngagement = Post::with(['socialAccount.category', 'socialAccount.region'])
@@ -136,7 +145,7 @@ class AnalyticsController extends Controller
 
         // Keyword trend (daily for top 5 keywords, last 30 days)
         $topKeywordIds = $keywordRanking30->take(5)->pluck('id');
-        $keywordTrend  = [];
+        $keywordTrend  = collect();
         if ($topKeywordIds->isNotEmpty()) {
             $keywordTrend = DB::table('post_keyword_pivot')
                 ->join('posts', 'posts.id', '=', 'post_keyword_pivot.post_id')

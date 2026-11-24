@@ -21,9 +21,12 @@
                 <option value="admin"      @selected(request('role')=='admin')>Admin</option>
                 <option value="viewer"     @selected(request('role')=='viewer')>Viewer</option>
             </select>
-            <button type="submit" class="px-3 py-2 bg-slate-700 text-white rounded-lg text-sm hover:bg-slate-600">
+            <button type="submit" class="px-3 py-2 bg-slate-700 text-white rounded-lg text-sm hover:bg-slate-600" aria-label="Cari User">
                 <i class="fas fa-search"></i>
             </button>
+            @if(request()->hasAny(['search','role']))
+            <a href="{{ route('users.index') }}" class="px-3 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm hover:bg-slate-50 font-medium">Reset</a>
+            @endif
         </form>
         <a href="{{ route('users.create') }}"
            class="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium"
@@ -34,6 +37,7 @@
 
     {{-- Table --}}
     <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-100">
+        <div class="overflow-x-auto">
         <table class="w-full text-sm">
             <thead style="background:#f8fafc; border-bottom:2px solid #e2e8f0;">
                 <tr>
@@ -83,16 +87,16 @@
                     </td>
                     <td class="px-5 py-3">
                         <div class="flex items-center justify-end gap-2">
-                            <a href="{{ route('users.edit', $user) }}"
+                            <a href="{{ route('users.edit', $user) }}" aria-label="Edit User {{ $user->name }}"
                                class="px-3 py-1.5 rounded-lg text-xs font-medium text-indigo-600 border border-indigo-200 hover:bg-indigo-50">
                                 <i class="fas fa-edit"></i> Edit
                             </a>
 
                             {{-- Toggle active --}}
                             @if($user->id !== auth()->id())
-                            <form method="POST" action="{{ route('users.toggle-active', $user) }}">
+                            <form method="POST" action="{{ route('users.toggle-active', $user) }}" onsubmit="return confirm('Ubah status aktif user ini?')">
                                 @csrf
-                                <button type="submit"
+                                <button type="submit" aria-label="Ubah Status User {{ $user->name }}"
                                         class="px-3 py-1.5 rounded-lg text-xs font-medium border
                                                {{ $user->is_active ? 'text-amber-600 border-amber-200 hover:bg-amber-50' : 'text-green-600 border-green-200 hover:bg-green-50' }}">
                                     <i class="fas {{ $user->is_active ? 'fa-ban' : 'fa-check-circle' }}"></i>
@@ -104,7 +108,7 @@
                             <form method="POST" action="{{ route('users.destroy', $user) }}"
                                   onsubmit="return confirm('Hapus user {{ $user->name }}?')">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50">
+                                <button type="submit" aria-label="Hapus User {{ $user->name }}" class="px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>
@@ -117,6 +121,7 @@
             @endforelse
             </tbody>
         </table>
+        </div>
         <div class="px-5 py-3 border-t border-slate-100">{{ $users->links() }}</div>
     </div>
 </div>

@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "SocioWatch Jateng - Social Sync Companion",
+  "version": "2.3.1",
+  "description": "Ekstensi pendamping SocioWatch Jateng untuk sinkronisasi otomatis & terjadwal profil serta postingan Instagram & Facebook ke sistem pemantauan.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "SocioWatch Sync (IG & FB)",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "permissions": [
+    "storage",
+    "cookies",
+    "tabs",
+    "scripting",
+    "alarms"
+  ],
+  "host_permissions": [
+    "*://*.instagram.com/*",
+    "*://*.facebook.com/*",
+    "http://localhost/*",
+    "http://localhost:*/*",
+    "http://127.0.0.1/*",
+    "http://127.0.0.1:*/*",
+    "https://*/*"
+  ]
+}

@@ -9,7 +9,7 @@
 {{-- Toolbar --}}
 <div class="flex flex-wrap items-center justify-between gap-3">
     <span class="text-sm text-slate-500">{{ $posts->total() }} postingan terpantau</span>
-    <a href="{{ route('posts.flagged.pdf') . '?' . http_build_query(request()->only('category_id','region_id')) }}"
+    <a href="{{ route('posts.flagged.pdf', request()->only('category_id','region_id','date_from','date_to')) }}"
        class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-red-600 hover:bg-red-700 text-white transition">
         <i class="fas fa-file-pdf text-xs"></i> Export PDF
     </a>
@@ -17,27 +17,44 @@
 
 {{-- Filters --}}
 <form method="GET" action="{{ route('posts.flagged') }}" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <select name="category_id" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-indigo-500 focus:border-indigo-500">
-            <option value="">Semua Kategori</option>
-            @foreach($categories as $cat)
-            <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
-            @endforeach
-        </select>
-        <select name="region_id" class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-indigo-500 focus:border-indigo-500">
-            <option value="">Semua Wilayah</option>
-            @foreach($regions as $r)
-            <option value="{{ $r->id }}" {{ request('region_id') == $r->id ? 'selected' : '' }}>{{ $r->name }}</option>
-            @endforeach
-        </select>
-        <input type="date" name="date_from" value="{{ request('date_from') }}"
-               class="border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
-        <div class="flex gap-2">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 items-end">
+        <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Kategori</label>
+            <select name="category_id" class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="">Semua Kategori</option>
+                @foreach($categories as $cat)
+                <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Wilayah</label>
+            <select name="region_id" class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="">Semua Wilayah</option>
+                @foreach($regions as $r)
+                <option value="{{ $r->id }}" {{ request('region_id') == $r->id ? 'selected' : '' }}>{{ $r->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Dari Tanggal</label>
+            <input type="date" name="date_from" value="{{ request('date_from') }}"
+                   class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
+        </div>
+        <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Sampai Tanggal</label>
             <input type="date" name="date_to" value="{{ request('date_to') }}"
-                   class="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
-            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-1.5 rounded-lg transition">
+                   class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-sm px-4 py-1.5 rounded-lg transition">
                 Filter
             </button>
+            @if(request()->hasAny(['category_id','region_id','date_from','date_to']))
+            <a href="{{ route('posts.flagged') }}" class="px-3 py-1.5 border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm rounded-lg transition" title="Reset">
+                Reset
+            </a>
+            @endif
         </div>
     </div>
 </form>
@@ -102,7 +119,7 @@
                         Detail
                     </a>
                     @can('can-edit')
-                    <form method="POST" action="{{ route('posts.toggle-flag', $post) }}">
+                    <form method="POST" action="{{ route('posts.toggle-flag', $post) }}" onsubmit="return confirm('Hapus status flag dari postingan ini?')">
                         @csrf
                         <button type="submit"
                                 class="w-full text-xs border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg transition">

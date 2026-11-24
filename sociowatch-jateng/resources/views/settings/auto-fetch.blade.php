@@ -11,7 +11,7 @@
     @if($igAuthError)
     <div class="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800 flex items-center gap-2">
         <i class="fas fa-exclamation-triangle"></i>
-        Token Instagram ditolak — perbarui token (lihat docs/setup-auto-fetch.md).
+        <span>Token Instagram ditolak — perbarui token (lihat docs/setup-auto-fetch.md). <span class="text-xs text-red-600 block">Perbarui INSTAGRAM_ACCESS_TOKEN pada konfigurasi .env server.</span></span>
     </div>
     @endif
 
@@ -84,7 +84,7 @@
                             {{ $acc->last_fetch_status->label() }}
                         </span>
                     </td>
-                    <td class="px-4 py-2 text-gray-500 text-xs">{{ $acc->last_fetch_error ?? '-' }}</td>
+                    <td class="px-4 py-2 text-gray-500 text-xs max-w-xs break-words">{{ $acc->last_fetch_error ?? '-' }}</td>
                     <td class="px-4 py-2 text-gray-400 text-xs">{{ $acc->last_fetched_at?->diffForHumans() ?? '-' }}</td>
                 </tr>
                 @empty
