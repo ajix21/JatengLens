@@ -10,6 +10,7 @@ class AccountAdmin extends Model
     protected $fillable = [
         'social_account_id',
         'full_name',
+        'photo',
         'alias',
         'nik',
         'no_kk',
@@ -23,6 +24,18 @@ class AccountAdmin extends Model
         'affiliation',
         'notes',
     ];
+
+    public function getPhotoUrlAttribute(): ?string
+    {
+        if (! $this->photo) {
+            return null;
+        }
+        if (preg_match('#^https?://#i', $this->photo) || str_starts_with($this->photo, '/storage/')) {
+            return $this->photo;
+        }
+
+        return '/storage/' . ltrim($this->photo, '/');
+    }
 
     public function socialAccount(): BelongsTo
     {

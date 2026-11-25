@@ -34,6 +34,7 @@
             <table class="w-full text-sm">
                 <thead class="bg-gray-50 border-b border-gray-100">
                     <tr>
+                        <th class="text-center px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide w-20">Foto</th>
                         <th class="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Nama / Identitas</th>
                         <th class="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Kontak</th>
                         <th class="text-left px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Pekerjaan / Afiliasi</th>
@@ -47,16 +48,23 @@
                     $pIcon = ['instagram'=>['fa-instagram','text-pink-500'],'twitter'=>['fa-twitter','text-sky-500'],'facebook'=>['fa-facebook','text-blue-600'],'tiktok'=>['fa-tiktok','text-gray-700'],'youtube'=>['fa-youtube','text-red-600']][$admin->socialAccount?->platform ?? ''] ?? ['fa-globe','text-gray-400'];
                     @endphp
                     <tr class="hover:bg-gray-50 transition">
+                        <td class="px-4 py-3 text-center">
+                            @if($admin->photo_url)
+                            <a href="{{ $admin->photo_url }}" target="_blank" rel="noopener noreferrer" title="Klik untuk perbesar foto {{ $admin->full_name }}" class="inline-block">
+                                <img src="{{ $admin->photo_url }}" alt="Foto {{ $admin->full_name }}"
+                                     class="w-11 h-11 rounded-lg object-cover border border-gray-200 shadow-xs hover:opacity-90 transition mx-auto">
+                            </a>
+                            @else
+                            <div class="w-11 h-11 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-500 font-bold text-sm mx-auto" title="Belum ada foto">
+                                {{ strtoupper(substr($admin->full_name, 0, 1)) }}
+                            </div>
+                            @endif
+                        </td>
                         <td class="px-4 py-3">
-                            <div class="flex items-center gap-3">
-                                <div class="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm flex-shrink-0">
-                                    {{ strtoupper(substr($admin->full_name, 0, 1)) }}
-                                </div>
-                                <div>
-                                    <p class="font-medium text-gray-800">{{ $admin->full_name }}</p>
-                                    @if($admin->alias)<p class="text-xs text-gray-400">{{ $admin->alias }}</p>@endif
-                                    @if($admin->nik)<p class="text-xs text-gray-400">NIK: {{ \Illuminate\Support\Str::mask($admin->nik, '*', 4, -4) }}</p>@endif
-                                </div>
+                            <div>
+                                <p class="font-medium text-gray-800">{{ $admin->full_name }}</p>
+                                @if($admin->alias)<p class="text-xs text-gray-400">{{ $admin->alias }}</p>@endif
+                                @if($admin->nik)<p class="text-xs text-gray-400">NIK: {{ \Illuminate\Support\Str::mask($admin->nik, '*', 4, -4) }}</p>@endif
                             </div>
                         </td>
                         <td class="px-4 py-3 text-gray-600 text-xs space-y-0.5">
@@ -102,7 +110,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="px-4 py-12 text-center text-gray-400">
+                        <td colspan="6" class="px-4 py-12 text-center text-gray-400">
                             <i class="fas fa-inbox text-3xl mb-3 block"></i>
                             Tidak ada data admin/operator ditemukan.
                         </td>

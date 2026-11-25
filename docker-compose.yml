@@ -16,6 +16,7 @@ services:
     volumes:
       - ./sociowatch-jateng/.env:/var/www/html/.env:ro
       - sociowatch_thumbnails:/var/www/html/storage/app/public/thumbnails
+      - sociowatch_admin_photos:/var/www/html/storage/app/public/admin-photos
       - sociowatch_logs:/var/www/html/storage/logs
     depends_on:
       db:
@@ -58,6 +59,7 @@ services:
 volumes:
   sociowatch_db_data:
   sociowatch_thumbnails:
+  sociowatch_admin_photos:
   sociowatch_logs:
 
 networks:

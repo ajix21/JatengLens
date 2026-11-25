@@ -6,6 +6,8 @@ use App\Models\AccountAdmin;
 use App\Models\SocialAccount;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AdminProfilingTest extends TestCase
@@ -90,5 +92,142 @@ class AdminProfilingTest extends TestCase
         $response->assertSee('Jl. Pemuda No. 45, Semarang');
         $response->assertSee('Catatan:');
         $response->assertDontSee('Catatan Intelijen Profiling:');
+    }
+
+    public function test_admin_photo_upload_display_update_and_delete(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create(['role' => 'superadmin', 'is_active' => true]);
+        $account = SocialAccount::factory()->create();
+
+        // 1. Store admin with photo
+        $file = UploadedFile::fake()->image('admin-avatar.jpg', 200, 200);
+        $this->actingAs($user)->post(route('admins.store'), [
+            'social_account_id' => $account->id,
+            'full_name'         => 'Budi Santoso',
+            'photo'             => $file,
+        ])->assertRedirect(route('admins.index'));
+
+        $admin = AccountAdmin::where('full_name', 'Budi Santoso')->firstOrFail();
+        $this->assertNotNull($admin->photo);
+        $this->assertStringStartsWith('admin-photos/', $admin->photo);
+        Storage::disk('public')->assertExists($admin->photo);
+
+        // 2. Photo appears in admins.index and accounts.show
+        $this->actingAs($user)->get(route('admins.index'))
+            ->assertOk()
+            ->assertSee('Foto')
+            ->assertSee($admin->photo_url);
+
+        $this->actingAs($user)->get(route('accounts.show', $account))
+            ->assertOk()
+            ->assertSee($admin->photo_url);
+
+        // 3. Remove photo via update
+        $oldPath = $admin->photo;
+        $this->actingAs($user)->put(route('admins.update', $admin), [
+            'social_account_id' => $account->id,
+            'full_name'         => 'Budi Santoso',
+            'remove_photo'      => '1',
+        ])->assertRedirect(route('admins.index'));
+
+        $admin->refresh();
+        $this->assertNull($admin->photo);
+        Storage::disk('public')->assertMissing($oldPath);
+    }
+
+    public function test_admin_photo_rejects_disguised_script_file(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create(['role' => 'superadmin', 'is_active' => true]);
+        $account = SocialAccount::factory()->create();
+
+        $probePayload = '<' . '?php echo "security-probe"; ?' . '>';
+        $fakeFile = UploadedFile::fake()->createWithContent('avatar.php.jpg', $probePayload);
+
+        $this->actingAs($user)->post(route('admins.store'), [
+            'social_account_id' => $account->id,
+            'full_name'         => 'Attacker Disguised',
+            'photo'             => $fakeFile,
+        ])->assertSessionHasErrors('photo');
+
+        $this->assertDatabaseMissing('account_admins', ['full_name' => 'Attacker Disguised']);
+        $this->assertEmpty(Storage::disk('public')->files('admin-photos'));
+    }
+
+    public function test_admin_photo_rejects_polyglot_jpeg_with_embedded_php_tag(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create(['role' => 'superadmin', 'is_active' => true]);
+        $account = SocialAccount::factory()->create();
+
+        $cleanJpg = UploadedFile::fake()->image('clean.jpg', 120, 120);
+        $probeTag = "\n" . '<' . '?php echo "polyglot-probe"; ?' . '>';
+        $polyglotFile = UploadedFile::fake()->createWithContent(
+            'polyglot.jpg',
+            file_get_contents($cleanJpg->getRealPath()) . $probeTag
+        );
+
+        $this->actingAs($user)->post(route('admins.store'), [
+            'social_account_id' => $account->id,
+            'full_name'         => 'Attacker Polyglot',
+            'photo'             => $polyglotFile,
+        ])->assertSessionHasErrors('photo');
+
+        $this->assertDatabaseMissing('account_admins', ['full_name' => 'Attacker Polyglot']);
+        $this->assertEmpty(Storage::disk('public')->files('admin-photos'));
+    }
+
+    public function test_admin_photo_rejects_svg_and_oversized_files(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create(['role' => 'superadmin', 'is_active' => true]);
+        $account = SocialAccount::factory()->create();
+
+        $svgContent = '<svg xmlns="http://www.w3.org/2000/svg"><' . 'script>void(0)</' . 'script></svg>';
+        $svg = UploadedFile::fake()->createWithContent('avatar.svg', $svgContent);
+
+        $this->actingAs($user)->post(route('admins.store'), [
+            'social_account_id' => $account->id,
+            'full_name'         => 'Attacker SVG',
+            'photo'             => $svg,
+        ])->assertSessionHasErrors('photo');
+
+        $oversized = UploadedFile::fake()->image('huge.jpg', 200, 200)->size(2500);
+
+        $this->actingAs($user)->post(route('admins.store'), [
+            'social_account_id' => $account->id,
+            'full_name'         => 'Oversized Admin',
+            'photo'             => $oversized,
+        ])->assertSessionHasErrors('photo');
+
+        $this->assertEmpty(Storage::disk('public')->files('admin-photos'));
+    }
+
+    public function test_admin_photo_reencodes_and_strips_trailing_bytes(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create(['role' => 'superadmin', 'is_active' => true]);
+        $account = SocialAccount::factory()->create();
+
+        $cleanJpg = UploadedFile::fake()->image('my-secret-name.jpg', 150, 150);
+        $marker = 'TRAILING_METADATA_MARKER_SHOULD_BE_STRIPPED';
+        $jpgWithTrailing = UploadedFile::fake()->createWithContent(
+            'my-secret-name.jpg',
+            file_get_contents($cleanJpg->getRealPath()) . $marker
+        );
+
+        $this->actingAs($user)->post(route('admins.store'), [
+            'social_account_id' => $account->id,
+            'full_name'         => 'Admin Bersih',
+            'photo'             => $jpgWithTrailing,
+        ])->assertRedirect(route('admins.index'));
+
+        $admin = AccountAdmin::where('full_name', 'Admin Bersih')->firstOrFail();
+        $this->assertStringNotContainsString('my-secret-name', $admin->photo);
+        $this->assertStringEndsWith('.jpg', $admin->photo);
+
+        $storedContent = Storage::disk('public')->get($admin->photo);
+        $this->assertStringNotContainsString($marker, $storedContent);
     }
 }

@@ -4,7 +4,22 @@ set -e
 cd /var/www/html
 
 # Ensure writable directories (especially when thumbnails volume is mounted)
-mkdir -p storage/app/public/thumbnails storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache
+mkdir -p storage/app/public/thumbnails storage/app/public/admin-photos storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache
+
+# Harden admin-photos upload directory against script execution
+cat > storage/app/public/admin-photos/.htaccess << 'EOF'
+Options -Indexes -ExecCGI
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+<FilesMatch "\.(?i:php[0-9]?|phtml|phar|pl|py|jsp|asp|aspx|sh|cgi|exe|bat|svg|html|htm)$">
+    Require all denied
+</FilesMatch>
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+</IfModule>
+EOF
+
 chown -R www-data:www-data storage bootstrap/cache
 
 # Ensure public/storage symlink exists

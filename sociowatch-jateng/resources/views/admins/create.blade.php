@@ -5,12 +5,56 @@
 
 @section('content')
 <div class="max-w-2xl">
-<form method="POST" action="{{ route('admins.store') }}">
+<form method="POST" action="{{ route('admins.store') }}" enctype="multipart/form-data">
 @csrf
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
     <h3 class="font-semibold text-gray-700 flex items-center gap-2">
         <i class="fas fa-id-card text-indigo-500"></i> Data Admin/Operator
     </h3>
+
+    <div x-data="{
+        previewUrl: null,
+        clientError: null,
+        handleFile(event) {
+            this.clientError = null;
+            const file = event.target.files[0];
+            if (!file) { this.previewUrl = null; return; }
+            const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+            if (!allowed.includes(file.type)) {
+                this.clientError = 'Hanya file gambar JPG, PNG, atau WEBP yang diizinkan.';
+                event.target.value = '';
+                this.previewUrl = null;
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                this.clientError = 'Ukuran foto melebihi batas maksimal 2 MB.';
+                event.target.value = '';
+                this.previewUrl = null;
+                return;
+            }
+            this.previewUrl = URL.createObjectURL(file);
+        }
+    }">
+        <label class="block text-sm font-medium text-gray-600 mb-1">Foto Admin</label>
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0">
+                <template x-if="previewUrl">
+                    <img :src="previewUrl" alt="Preview foto admin" class="w-full h-full object-cover">
+                </template>
+                <template x-if="!previewUrl">
+                    <i class="fas fa-user text-gray-300 text-2xl"></i>
+                </template>
+            </div>
+            <div class="flex-1">
+                <input type="file" name="photo" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                       @change="handleFile($event)"
+                       class="block w-full text-xs text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
+                <p class="text-xs text-gray-400 mt-1">Format JPG, PNG, atau WEBP (maks. 2 MB, otomatis disanitasi ulang).</p>
+                <p x-show="clientError" x-text="clientError" class="text-red-500 text-xs mt-1"></p>
+                @error('photo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+            </div>
+        </div>
+    </div>
 
     <div>
         <label class="block text-sm font-medium text-gray-600 mb-1">Akun Sosmed <span class="text-red-500">*</span></label>

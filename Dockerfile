@@ -6,12 +6,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unzip \
     libpng-dev \
     libjpeg62-turbo-dev \
+    libwebp-dev \
     libfreetype6-dev \
     libzip-dev \
     libicu-dev \
     libxml2-dev \
     tzdata \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j$(nproc) \
         pdo_mysql \
         gd \

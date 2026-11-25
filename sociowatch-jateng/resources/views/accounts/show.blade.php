@@ -173,9 +173,16 @@ $setting = $account->alertSetting ?? $globalSetting;
                     <div x-data="{ copied: false, text: @js($waReport) }"
                          class="p-4 rounded-xl border border-gray-200 bg-slate-50/70 hover:bg-slate-50 transition mb-3">
                         <div class="flex items-start gap-4">
+                            @if($admin->photo_url)
+                            <a href="{{ $admin->photo_url }}" target="_blank" rel="noopener noreferrer" title="Perbesar foto {{ $admin->full_name }}" class="flex-shrink-0">
+                                <img src="{{ $admin->photo_url }}" alt="Foto {{ $admin->full_name }}"
+                                     class="w-12 h-12 rounded-xl object-cover border border-gray-200 shadow-sm hover:opacity-90 transition">
+                            </a>
+                            @else
                             <div class="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-lg flex-shrink-0 shadow-sm">
                                 {{ strtoupper(substr($admin->full_name, 0, 1)) }}
                             </div>
+                            @endif
                             <div class="flex-1 min-w-0">
                                 <div class="flex flex-wrap items-center justify-between gap-2 mb-2 pb-2 border-b border-gray-100">
                                     <div>
