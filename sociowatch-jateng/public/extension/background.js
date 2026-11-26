@@ -3,7 +3,7 @@
 // aligned before server snapshot (06:30 & 18:30), supports X-Sync-Token auth & not_found reporting.
 
 const IG_APP_ID = '936619743392459';
-const DEFAULT_BACKEND_URL = 'http://localhost:8000';
+const DEFAULT_BACKEND_URL = 'https://sociow.androlab.my.id';
 const MAX_LOGS = 150;
 const ALARM_SLOT_1 = 'sociowatch_sync_slot_1';
 const ALARM_SLOT_2 = 'sociowatch_sync_slot_2';

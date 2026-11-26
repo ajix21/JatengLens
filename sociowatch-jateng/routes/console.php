@@ -12,6 +12,10 @@ Artisan::command('inspire', function () {
 Schedule::command('social:fetch')->dailyAt('08:00')->timezone('Asia/Jakarta')->withoutOverlapping(60);
 Schedule::command('social:fetch')->dailyAt('20:00')->timezone('Asia/Jakarta')->withoutOverlapping(60);
 
+// Arsip lokal thumbnail postingan baru agar tidak expired (10 menit setelah fetch)
+Schedule::command('media:cache-thumbnails --limit=200')->dailyAt('08:10')->timezone('Asia/Jakarta')->withoutOverlapping(20);
+Schedule::command('media:cache-thumbnails --limit=200')->dailyAt('20:10')->timezone('Asia/Jakarta')->withoutOverlapping(20);
+
 // Snapshot otomatis 15 menit setelah fetch & ekstensi mulai: pukul 08:15 dan 20:15 WIB
 Schedule::command('monitor:snapshot')->dailyAt('08:15')->timezone('Asia/Jakarta');
 Schedule::command('monitor:snapshot')->dailyAt('20:15')->timezone('Asia/Jakarta');
