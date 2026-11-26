@@ -53,7 +53,22 @@ class BrowserSyncController extends Controller
             });
         }
 
-        $accounts = $query->orderBy('platform')->orderBy('username')->get()->map(fn($acc) => [
+        // Urutkan stale-first (paling lama belum di-sync / belum pernah di-sync) + batas aman default 45 akun/sesi
+        // agar akun IG/FB browser tidak terkena checkpoint/ban.
+        $limit = $request->has('limit')
+            ? max(1, min(150, (int) $request->query('limit')))
+            : ($request->boolean('all') ? 150 : 45);
+
+        $totalEligible = (clone $query)->count();
+
+        $accounts = $query
+            ->orderByRaw('last_fetched_at IS NULL DESC')
+            ->orderBy('last_fetched_at')
+            ->orderBy('platform')
+            ->orderBy('username')
+            ->limit($limit)
+            ->get()
+            ->map(fn($acc) => [
             'id' => $acc->id,
             'platform' => $acc->platform,
             'username' => $acc->username,
@@ -73,6 +88,8 @@ class BrowserSyncController extends Controller
         return response()->json([
             'success' => true,
             'count' => $accounts->count(),
+            'total_eligible' => $totalEligible,
+            'limit' => $limit,
             'accounts' => $accounts,
         ]);
     }

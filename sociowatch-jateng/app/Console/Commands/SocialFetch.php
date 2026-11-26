@@ -9,7 +9,12 @@ use Illuminate\Console\Command;
 
 class SocialFetch extends Command
 {
-    protected $signature = 'social:fetch {--platform= : Batasi ke satu platform (youtube|instagram)} {--account= : Batasi ke satu ID akun} {--dry-run : Hitung saja tanpa menyimpan}';
+    protected $signature = 'social:fetch
+        {--platform= : Batasi ke satu platform (youtube|instagram)}
+        {--account= : Batasi ke satu ID akun}
+        {--batch= : Nomor batch (1..N) untuk membagi kuota API}
+        {--batches=1 : Total jumlah batch (mis. 2)}
+        {--dry-run : Hitung saja tanpa menyimpan}';
 
     protected $description = 'Ambil data akun dan postingan YouTube/Instagram secara otomatis';
 
@@ -17,12 +22,17 @@ class SocialFetch extends Command
     {
         $platform = $this->option('platform') ?: null;
         $account = $this->option('account');
+        $batchOpt = $this->option('batch');
+        $batch = ($batchOpt !== null && $batchOpt !== '') ? max(1, (int) $batchOpt) : null;
+        $batches = max(1, (int) ($this->option('batches') ?: 1));
         $dryRun = (bool) $this->option('dry-run');
 
         $results = $service->fetchAll(
             $platform,
             $account !== null && $account !== '' ? (int) $account : null,
-            $dryRun
+            $dryRun,
+            $batch,
+            $batches
         );
 
         foreach ($service->skippedPlatforms() as $skipped) {

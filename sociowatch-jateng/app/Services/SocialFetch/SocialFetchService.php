@@ -57,7 +57,7 @@ class SocialFetchService
         return $this->skippedPlatforms;
     }
 
-    public function eligibleAccounts(?string $platform, ?int $accountId): Builder
+    public function eligibleAccounts(?string $platform, ?int $accountId, ?int $batch = null, int $batches = 1): Builder
     {
         return SocialAccount::query()
             ->whereIn('platform', array_keys($this->fetchers))
@@ -65,12 +65,15 @@ class SocialFetchService
             ->where('auto_fetch', true)
             ->when($platform, fn (Builder $q) => $q->where('platform', $platform))
             ->when($accountId, fn (Builder $q) => $q->where('id', $accountId))
+            ->when($batch !== null && $batches > 1, fn (Builder $q) => $q->whereRaw('MOD(id, ?) = ?', [$batches, ($batch - 1) % $batches]))
+            ->orderByRaw('last_fetched_at IS NULL DESC')
+            ->orderBy('last_fetched_at')
             ->orderBy('platform')
             ->orderBy('id');
     }
 
     /** @return Collection<int, FetchResult> */
-    public function fetchAll(?string $platform = null, ?int $accountId = null, bool $dryRun = false): Collection
+    public function fetchAll(?string $platform = null, ?int $accountId = null, bool $dryRun = false, ?int $batch = null, int $batches = 1): Collection
     {
         $this->skippedPlatforms = [];
         $results = collect();
@@ -91,7 +94,7 @@ class SocialFetchService
         /** @var array<string, array{FetchStatus, string}> $fatal */
         $fatal = [];
 
-        $accounts = $this->eligibleAccounts($platform, $accountId)
+        $accounts = $this->eligibleAccounts($platform, $accountId, $batch, $batches)
             ->whereIn('platform', $configured)
             ->get();
 
