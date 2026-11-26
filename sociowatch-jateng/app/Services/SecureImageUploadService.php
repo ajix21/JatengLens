@@ -33,7 +33,7 @@ class SecureImageUploadService
      */
     private const MALICIOUS_PATTERNS = [
         '/<\?php/i',
-        '/<\?=/i',
+        '/<\?=\s*[\$a-zA-Z_]/',
         '/<script\b/i',
         '/<\/script>/i',
         '/<iframe\b/i',
