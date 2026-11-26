@@ -82,7 +82,7 @@ class AnalyticsController extends Controller
             ->join('keywords', 'keywords.id', '=', 'post_keyword_pivot.keyword_id')
             ->where('keywords.is_active', true)
             ->where('posts.posted_at', '>=', $day30)
-            ->selectRaw('keywords.word, keywords.category, keywords.color, SUM(post_keyword_pivot.occurrence_count) as total')
+            ->selectRaw('keywords.id, keywords.word, keywords.category, keywords.color, SUM(post_keyword_pivot.occurrence_count) as total')
             ->groupBy('keywords.id', 'keywords.word', 'keywords.category', 'keywords.color')
             ->orderByDesc('total')
             ->take(60)

@@ -443,7 +443,7 @@
 
         {{-- ── Flash Messages ── --}}
         @if(session('success') || session('error') || session('warning'))
-        <div class="flash-toast space-y-2" x-data x-init="setTimeout(() => $el.remove(), 5000)">
+        <div id="flashToastContainer" class="flash-toast space-y-2" x-data x-init="setTimeout(() => $el.remove(), 5000)">
             @if(session('success'))
             <div role="status" aria-live="polite" class="flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-medium"
                  style="background:#fff; border:1px solid #bbf7d0; border-left:4px solid #22c55e;">
@@ -469,6 +469,18 @@
             </div>
             @endif
         </div>
+        <script>
+        (function () {
+            var box = document.getElementById('flashToastContainer');
+            if (!box) return;
+            box.querySelectorAll('button').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    if (btn.parentElement) btn.parentElement.remove();
+                });
+            });
+            setTimeout(function () { if (box && box.parentElement) box.remove(); }, 5000);
+        })();
+        </script>
         @endif
 
         {{-- ── Page Content ── --}}
