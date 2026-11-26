@@ -327,27 +327,21 @@
                     Sistem Aktif
                 </div>
 
-                {{-- Bell notification --}}
-                <div x-data="bellNotif()" x-init="init()" class="relative">
-                    <button @click="open = !open; if(open) fetchAlerts()"
+                {{-- Bell notification (pure CSP-safe Vanilla JS) --}}
+                <div id="bellNotifWrap" class="relative">
+                    <button id="bellNotifBtn" type="button"
                             aria-label="Notifikasi"
-                            :aria-expanded="open"
+                            aria-expanded="false"
                             class="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 transition text-slate-500">
                         <i class="fas fa-bell text-base"></i>
-                        <span x-show="unreadCount > 0" x-cloak
-                              class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-white font-bold"
-                              style="background:#ef4444; font-size:.6rem; padding:0 3px;"
-                              x-text="unreadCount > 99 ? '99+' : unreadCount"></span>
+                        <span id="bellNotifBadge"
+                              class="hidden absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-white font-bold"
+                              style="background:#ef4444; font-size:.6rem; padding:0 3px;"></span>
                     </button>
 
                     {{-- Dropdown --}}
-                    <div x-show="open" x-cloak @click.outside="open = false"
-                         x-transition:enter="transition ease-out duration-150"
-                         x-transition:enter-start="opacity-0 translate-y-1"
-                         x-transition:enter-end="opacity-100 translate-y-0"
-                         x-transition:leave="transition ease-in duration-100"
-                         x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
-                         class="absolute right-0 mt-2 w-80 rounded-xl shadow-xl border overflow-hidden z-50"
+                    <div id="bellNotifDropdown"
+                         class="hidden absolute right-0 mt-2 w-80 rounded-xl shadow-xl border overflow-hidden z-50"
                          style="background:#fff; border-color:#e2e8f0; top:100%">
 
                         {{-- Header --}}
@@ -355,43 +349,20 @@
                              style="background:#f8fafc; border-bottom:1px solid #e2e8f0;">
                             <span class="text-sm font-semibold text-slate-700">Notifikasi</span>
                             <div class="flex items-center gap-2">
-                                <span x-show="unreadCount > 0" x-cloak
-                                      class="text-xs font-bold px-2 py-0.5 rounded-full text-white"
-                                      style="background:#ef4444;" x-text="unreadCount + ' belum dibaca'"></span>
+                                <span id="bellNotifHeaderBadge"
+                                      class="hidden text-xs font-bold px-2 py-0.5 rounded-full text-white"
+                                      style="background:#ef4444;"></span>
                                 <a href="{{ route('alerts.index') }}"
                                    class="text-xs text-indigo-600 font-medium hover:underline">Semua</a>
                             </div>
                         </div>
 
                         {{-- Alert list --}}
-                        <div class="divide-y divide-slate-100 max-h-72 overflow-y-auto">
-                            <template x-if="loading">
-                                <div class="flex items-center justify-center py-8">
-                                    <i class="fas fa-spinner fa-spin text-indigo-500 mr-2"></i>
-                                    <span class="text-xs text-slate-400">Memuat…</span>
-                                </div>
-                            </template>
-                            <template x-if="!loading && alerts.length === 0">
-                                <div class="flex flex-col items-center py-8 text-slate-400">
-                                    <i class="fas fa-bell-slash text-2xl mb-2"></i>
-                                    <span class="text-xs">Tidak ada notifikasi baru</span>
-                                </div>
-                            </template>
-                            <template x-for="alert in alerts" :key="alert.id">
-                                <a href="{{ route('alerts.index') }}" class="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition block"
-                                     :class="!alert.is_read ? 'bg-indigo-50/60' : ''">
-                                    <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                                         :style="alert.alert_type === 'spike_up' ? 'background:#dcfce7' : (alert.alert_type === 'spike_down' ? 'background:#fee2e2' : 'background:#fef3c7')">
-                                        <i class="fas text-xs"
-                                           :class="alert.alert_type === 'spike_up' ? 'fa-arrow-trend-up text-green-600' : (alert.alert_type === 'spike_down' ? 'fa-arrow-trend-down text-red-600' : 'fa-trophy text-amber-600')"></i>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-xs text-slate-700 leading-snug" x-text="alert.message"></p>
-                                        <p class="text-[0.65rem] text-slate-400 mt-0.5" x-text="alert.triggered_at_human"></p>
-                                    </div>
-                                    <div x-show="!alert.is_read" class="w-2 h-2 rounded-full bg-indigo-500 mt-1 flex-shrink-0"></div>
-                                </a>
-                            </template>
+                        <div id="bellNotifList" class="divide-y divide-slate-100 max-h-72 overflow-y-auto">
+                            <div class="flex flex-col items-center py-8 text-slate-400">
+                                <i class="fas fa-bell-slash text-2xl mb-2"></i>
+                                <span class="text-xs">Tidak ada notifikasi baru</span>
+                            </div>
                         </div>
 
                         {{-- Footer --}}
@@ -504,43 +475,113 @@ function appShell() {
     }
 }
 
-function bellNotif() {
-    return {
-        open: false,
-        loading: false,
-        unreadCount: 0,
-        alerts: [],
-        pollTimer: null,
+(function initBellNotif() {
+    var wrap = document.getElementById('bellNotifWrap');
+    var btn = document.getElementById('bellNotifBtn');
+    var dropdown = document.getElementById('bellNotifDropdown');
+    var badge = document.getElementById('bellNotifBadge');
+    var headerBadge = document.getElementById('bellNotifHeaderBadge');
+    var list = document.getElementById('bellNotifList');
+    if (!wrap || !btn || !dropdown) return;
 
-        init() {
-            this.fetchCount();
-            this.pollTimer = setInterval(() => this.fetchCount(), 60000);
-        },
+    var endpoint = '{{ route('api.alerts.unread') }}';
+    var alertsUrl = '{{ route('alerts.index') }}';
+    var isOpen = false;
 
-        fetchCount() {
-            fetch('{{ route('api.alerts.unread') }}', {
-                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-            })
-            .then(r => r.json())
-            .then(data => { this.unreadCount = data.count; })
-            .catch(() => {});
-        },
-
-        fetchAlerts() {
-            this.loading = true;
-            fetch('{{ route('api.alerts.unread') }}', {
-                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
-            })
-            .then(r => r.json())
-            .then(data => {
-                this.unreadCount = data.count;
-                this.alerts = data.alerts;
-            })
-            .catch(() => {})
-            .finally(() => { this.loading = false; });
-        },
+    function updateBadges(count) {
+        var n = parseInt(count, 10) || 0;
+        if (n > 0) {
+            badge.textContent = n > 99 ? '99+' : String(n);
+            badge.classList.remove('hidden');
+            headerBadge.textContent = n + ' belum dibaca';
+            headerBadge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+            headerBadge.classList.add('hidden');
+        }
     }
-}
+
+    function renderAlerts(alerts) {
+        list.innerHTML = '';
+        if (!alerts || alerts.length === 0) {
+            list.innerHTML = '<div class="flex flex-col items-center py-8 text-slate-400"><i class="fas fa-bell-slash text-2xl mb-2"></i><span class="text-xs">Tidak ada notifikasi baru</span></div>';
+            return;
+        }
+        alerts.forEach(function (alert) {
+            var a = document.createElement('a');
+            a.href = alertsUrl;
+            a.className = 'flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition block' + (!alert.is_read ? ' bg-indigo-50/60' : '');
+
+            var iconWrap = document.createElement('div');
+            iconWrap.className = 'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5';
+            var bg = alert.alert_type === 'spike_up' ? '#dcfce7' : (alert.alert_type === 'spike_down' ? '#fee2e2' : '#fef3c7');
+            iconWrap.style.background = bg;
+
+            var icon = document.createElement('i');
+            icon.className = 'fas text-xs ' + (alert.alert_type === 'spike_up' ? 'fa-arrow-trend-up text-green-600' : (alert.alert_type === 'spike_down' ? 'fa-arrow-trend-down text-red-600' : 'fa-trophy text-amber-600'));
+            iconWrap.appendChild(icon);
+
+            var body = document.createElement('div');
+            body.className = 'flex-1 min-w-0';
+            var msg = document.createElement('p');
+            msg.className = 'text-xs text-slate-700 leading-snug';
+            msg.textContent = alert.message || '';
+            var ts = document.createElement('p');
+            ts.className = 'text-[0.65rem] text-slate-400 mt-0.5';
+            ts.textContent = alert.triggered_at_human || '';
+            body.appendChild(msg);
+            body.appendChild(ts);
+
+            a.appendChild(iconWrap);
+            a.appendChild(body);
+
+            if (!alert.is_read) {
+                var dot = document.createElement('div');
+                dot.className = 'w-2 h-2 rounded-full bg-indigo-500 mt-1 flex-shrink-0';
+                a.appendChild(dot);
+            }
+            list.appendChild(a);
+        });
+    }
+
+    function fetchAlerts(withList) {
+        if (withList) {
+            list.innerHTML = '<div class="flex items-center justify-center py-8"><i class="fas fa-spinner fa-spin text-indigo-500 mr-2"></i><span class="text-xs text-slate-400">Memuat…</span></div>';
+        }
+        fetch(endpoint, { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                updateBadges(data.count);
+                if (withList) renderAlerts(data.alerts);
+            })
+            .catch(function () {
+                if (withList) renderAlerts([]);
+            });
+    }
+
+    function setOpen(next) {
+        isOpen = next;
+        dropdown.classList.toggle('hidden', !isOpen);
+        btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        if (isOpen) fetchAlerts(true);
+    }
+
+    btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        setOpen(!isOpen);
+    });
+
+    document.addEventListener('click', function (e) {
+        if (isOpen && !wrap.contains(e.target)) setOpen(false);
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (isOpen && e.key === 'Escape') setOpen(false);
+    });
+
+    fetchAlerts(false);
+    setInterval(function () { fetchAlerts(false); }, 60000);
+})();
 </script>
 </body>
 </html>

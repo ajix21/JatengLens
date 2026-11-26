@@ -4,23 +4,26 @@
 @section('breadcrumb')<span class="text-slate-600">Analytics</span>@endsection
 
 @section('content')
-<div class="space-y-6" x-data="{ analyticsTab: '{{ request('tab') === 'content' ? 'content' : 'followers' }}' }" x-effect="if(analyticsTab==='content') $nextTick(() => { window.dispatchEvent(new Event('resize')); })">
+@php
+$initialTab = request('tab') === 'content' ? 'content' : 'followers';
+@endphp
+<div class="space-y-6" id="analyticsPage">
 
-{{-- Tab switcher --}}
+{{-- Tab switcher (CSP-safe Vanilla JS) --}}
 <div class="flex gap-1 bg-white rounded-xl border border-gray-100 p-1 shadow-sm w-fit" role="tablist">
-    <button @click="analyticsTab='followers'"
-            :class="analyticsTab==='followers' ? 'bg-indigo-600 text-white shadow' : 'text-gray-500 hover:text-gray-700'"
-            class="px-4 py-1.5 rounded-lg text-sm font-medium transition" role="tab" :aria-selected="analyticsTab==='followers'">
+    <button type="button" data-analytics-tab-btn="followers"
+            class="px-4 py-1.5 rounded-lg text-sm font-medium transition {{ $initialTab === 'followers' ? 'bg-indigo-600 text-white shadow' : 'text-gray-500 hover:text-gray-700' }}"
+            role="tab" aria-selected="{{ $initialTab === 'followers' ? 'true' : 'false' }}">
         <i class="fas fa-chart-line mr-1.5"></i>Followers & Tren
     </button>
-    <button @click="analyticsTab='content'"
-            :class="analyticsTab==='content' ? 'bg-indigo-600 text-white shadow' : 'text-gray-500 hover:text-gray-700'"
-            class="px-4 py-1.5 rounded-lg text-sm font-medium transition" role="tab" :aria-selected="analyticsTab==='content'">
+    <button type="button" data-analytics-tab-btn="content"
+            class="px-4 py-1.5 rounded-lg text-sm font-medium transition {{ $initialTab === 'content' ? 'bg-indigo-600 text-white shadow' : 'text-gray-500 hover:text-gray-700' }}"
+            role="tab" aria-selected="{{ $initialTab === 'content' ? 'true' : 'false' }}">
         <i class="fas fa-newspaper mr-1.5"></i>Analisis Konten
     </button>
 </div>
 
-<div x-show="analyticsTab==='followers'" x-cloak class="space-y-6">
+<div data-analytics-tab-panel="followers" class="space-y-6 {{ $initialTab !== 'followers' ? 'hidden' : '' }}">
 
 {{-- Summary cards --}}
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -195,7 +198,7 @@
 </div>{{-- /followers tab --}}
 
 {{-- ═══════ CONTENT ANALYTICS TAB ═══════ --}}
-<div x-show="analyticsTab==='content'" x-cloak class="space-y-6">
+<div data-analytics-tab-panel="content" class="space-y-6 {{ $initialTab !== 'content' ? 'hidden' : '' }}">
 @php
 $kCloud    = $contentData['keywordCloud'];
 $kRank30   = $contentData['keywordRanking30'];
@@ -527,5 +530,34 @@ new Chart(document.getElementById('sentimentChart'), {
     }
 });
 @endif
+
+(function initAnalyticsTabs() {
+    var btns = document.querySelectorAll('[data-analytics-tab-btn]');
+    var panels = document.querySelectorAll('[data-analytics-tab-panel]');
+    if (!btns.length || !panels.length) return;
+
+    function switchTab(target) {
+        btns.forEach(function (b) {
+            var active = b.getAttribute('data-analytics-tab-btn') === target;
+            b.setAttribute('aria-selected', active ? 'true' : 'false');
+            b.classList.toggle('bg-indigo-600', active);
+            b.classList.toggle('text-white', active);
+            b.classList.toggle('shadow', active);
+            b.classList.toggle('text-gray-500', !active);
+            b.classList.toggle('hover:text-gray-700', !active);
+        });
+        panels.forEach(function (p) {
+            var active = p.getAttribute('data-analytics-tab-panel') === target;
+            p.classList.toggle('hidden', !active);
+        });
+        window.dispatchEvent(new Event('resize'));
+    }
+
+    btns.forEach(function (b) {
+        b.addEventListener('click', function () {
+            switchTab(b.getAttribute('data-analytics-tab-btn'));
+        });
+    });
+})();
 </script>
 @endpush
