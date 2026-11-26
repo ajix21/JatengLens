@@ -12,75 +12,23 @@
         <i class="fas fa-id-card text-indigo-500"></i> Data Admin/Operator
     </h3>
 
-    <div x-data="{
-        previewUrl: null,
-        clientError: null,
-        isDragging: false,
-        fileName: null,
-        applyFile(file, inputEl) {
-            this.clientError = null;
-            if (!file) { this.previewUrl = null; this.fileName = null; return; }
-            const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-            if (!allowed.includes(file.type)) {
-                this.clientError = 'Hanya file gambar JPG, PNG, atau WEBP yang diizinkan.';
-                if (inputEl) inputEl.value = '';
-                this.previewUrl = null;
-                this.fileName = null;
-                return;
-            }
-            if (file.size > 2 * 1024 * 1024) {
-                this.clientError = 'Ukuran foto melebihi batas maksimal 2 MB.';
-                if (inputEl) inputEl.value = '';
-                this.previewUrl = null;
-                this.fileName = null;
-                return;
-            }
-            this.fileName = file.name;
-            const reader = new FileReader();
-            reader.onload = (e) => { this.previewUrl = e.target.result; };
-            reader.readAsDataURL(file);
-        },
-        handleFile(event) {
-            this.applyFile(event.target.files[0], event.target);
-        },
-        handleDrop(event) {
-            this.isDragging = false;
-            const file = event.dataTransfer?.files?.[0];
-            const inputEl = this.$refs.photoInput;
-            if (!file || !inputEl) return;
-            const dt = new DataTransfer();
-            dt.items.add(file);
-            inputEl.files = dt.files;
-            this.applyFile(file, inputEl);
-        }
-    }">
+    <div id="adminPhotoCreate" data-original-url="">
         <label class="block text-sm font-medium text-gray-600 mb-1.5">Foto Admin</label>
         <div class="flex items-start gap-4">
-            <div class="w-16 h-16 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0">
-                <template x-if="previewUrl">
-                    <img :src="previewUrl" alt="Preview foto admin" class="w-full h-full object-cover">
-                </template>
-                <template x-if="!previewUrl">
-                    <i class="fas fa-user text-gray-300 text-2xl"></i>
-                </template>
+            <div data-photo-preview class="w-16 h-16 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0">
+                <i class="fas fa-user text-gray-300 text-2xl"></i>
             </div>
             <div class="flex-1">
-                <div @dragover.prevent="isDragging = true"
-                     @dragleave.prevent="isDragging = false"
-                     @drop.prevent="handleDrop($event)"
-                     @click="$refs.photoInput.click()"
-                     :class="isDragging ? 'border-indigo-500 bg-indigo-50/70' : 'border-gray-300 bg-gray-50/50 hover:border-indigo-400 hover:bg-indigo-50/30'"
-                     class="border-2 border-dashed rounded-xl px-4 py-3 text-center cursor-pointer transition">
-                    <input type="file" name="photo" x-ref="photoInput" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                           @change="handleFile($event)"
-                           class="hidden">
+                <div data-photo-dropzone
+                     class="border-2 border-dashed border-gray-300 bg-gray-50/50 hover:border-indigo-400 hover:bg-indigo-50/30 rounded-xl px-4 py-3 text-center cursor-pointer transition">
+                    <input type="file" name="photo" data-photo-input accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="hidden">
                     <div class="flex items-center justify-center gap-2 text-xs text-gray-600">
                         <i class="fas fa-cloud-upload-alt text-indigo-500 text-base"></i>
                         <span><span class="font-semibold text-indigo-600">Klik untuk pilih</span> atau <strong>drag &amp; drop</strong> foto di sini</span>
                     </div>
-                    <p class="text-[11px] text-gray-400 mt-0.5" x-text="fileName ? ('File terpilih: ' + fileName) : 'JPG, PNG, atau WEBP • Maks. 2 MB (otomatis disanitasi)'"></p>
+                    <p data-photo-label data-default-text="JPG, PNG, atau WEBP • Maks. 2 MB (otomatis disanitasi)" class="text-[11px] text-gray-400 mt-0.5">JPG, PNG, atau WEBP • Maks. 2 MB (otomatis disanitasi)</p>
                 </div>
-                <p x-show="clientError" x-text="clientError" class="text-red-500 text-xs mt-1"></p>
+                <p data-photo-error class="hidden text-red-500 text-xs mt-1"></p>
                 @error('photo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
         </div>
@@ -207,3 +155,7 @@
 </form>
 </div>
 @endsection
+@push('scripts')
+<script src="{{ asset('vendor/admin-subform.js') }}"></script>
+<script>document.addEventListener('DOMContentLoaded', function () { initSinglePhotoDropzone('adminPhotoCreate'); });</script>
+@endpush

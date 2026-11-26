@@ -103,24 +103,21 @@ $setting = $account->alertSetting ?? $globalSetting;
     </div>
 </div>
 
-{{-- TABS SYSTEM: FOKUS UTAMA PROFILING --}}
-<div x-data="{ tab: 'profiling' }">
+{{-- TABS SYSTEM: FOKUS UTAMA PROFILING (100% CSP-safe Vanilla JS) --}}
+<div id="accountShowTabs">
     <div role="tablist" class="flex gap-1 bg-white rounded-xl border border-gray-100 p-1 shadow-sm w-fit mb-5">
-        <button role="tab" :aria-selected="tab === 'profiling'" @click="tab='profiling'"
-                :class="tab==='profiling' ? 'bg-indigo-600 text-white shadow' : 'text-gray-500 hover:text-gray-700'"
-                class="px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2">
+        <button type="button" role="tab" data-account-tab-btn="profiling" aria-selected="true"
+                class="px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-2 bg-indigo-600 text-white shadow">
             <i class="fas fa-id-card-clip"></i>
             <span>Profiling & Latar Belakang</span>
         </button>
-        <button role="tab" :aria-selected="tab === 'trend'" @click="tab='trend'; $nextTick(() => { window.dispatchEvent(new Event('resize')); })"
-                :class="tab==='trend' ? 'bg-indigo-600 text-white shadow' : 'text-gray-500 hover:text-gray-700'"
-                class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+        <button type="button" role="tab" data-account-tab-btn="trend" aria-selected="false"
+                class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 text-gray-500 hover:text-gray-700">
             <i class="fas fa-chart-line"></i>
             <span>Tren Followers (Tambahan)</span>
         </button>
-        <button role="tab" :aria-selected="tab === 'alerts'" @click="tab='alerts'"
-                :class="tab==='alerts' ? 'bg-indigo-600 text-white shadow' : 'text-gray-500 hover:text-gray-700'"
-                class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+        <button type="button" role="tab" data-account-tab-btn="alerts" aria-selected="false"
+                class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 text-gray-500 hover:text-gray-700">
             <i class="fas fa-bell"></i>
             <span>Alert</span>
             @if($recentAlerts->where('is_read', false)->count())
@@ -129,16 +126,15 @@ $setting = $account->alertSetting ?? $globalSetting;
             </span>
             @endif
         </button>
-        <button role="tab" :aria-selected="tab === 'info'" @click="tab='info'"
-                :class="tab==='info' ? 'bg-indigo-600 text-white shadow' : 'text-gray-500 hover:text-gray-700'"
-                class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+        <button type="button" role="tab" data-account-tab-btn="info" aria-selected="false"
+                class="px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 text-gray-500 hover:text-gray-700">
             <i class="fas fa-history"></i>
             <span>Riwayat & Log</span>
         </button>
     </div>
 
     {{-- TAB 1: PROFILING & LATAR BELAKANG (TAMPILAN UTAMA) --}}
-    <div x-show="tab==='profiling'" x-cloak class="space-y-6">
+    <div data-account-tab-panel="profiling" class="space-y-6">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             {{-- KOLOM KIRI: ADMIN & ORANG DI BALIK AKUN (2 Kolom) --}}
@@ -170,8 +166,7 @@ $setting = $account->alertSetting ?? $globalSetting;
                     @php
                         $waReport = $admin->toWhatsAppText();
                     @endphp
-                    <div x-data="{ copied: false, text: @js($waReport) }"
-                         class="rounded-xl border border-gray-200 bg-slate-50/70 hover:bg-slate-50 transition mb-4 overflow-hidden shadow-xs">
+                    <div class="rounded-xl border border-gray-200 bg-slate-50/70 hover:bg-slate-50 transition mb-4 overflow-hidden shadow-xs">
                         <div class="flex flex-col md:flex-row items-stretch">
                             {{-- KIRI: FULL GAMBAR FOTO ADMIN --}}
                             <div class="w-full md:w-52 lg:w-60 flex-shrink-0 bg-slate-200/60 border-b md:border-b-0 md:border-r border-gray-200 relative min-h-[220px] md:min-h-[260px]">
@@ -218,12 +213,12 @@ $setting = $account->alertSetting ?? $globalSetting;
                                         </div>
                                         @endif
                                         <button type="button"
-                                                @click="navigator.clipboard.writeText(text); copied = true; setTimeout(() => copied = false, 2000)"
-                                                class="text-[0.7rem] px-2.5 py-1 rounded-md font-semibold transition flex items-center gap-1 shadow-xs"
-                                                :class="copied ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'"
+                                                data-copy-wa-btn
+                                                data-wa-text="{{ $waReport }}"
+                                                class="text-[0.7rem] px-2.5 py-1 rounded-md font-semibold transition flex items-center gap-1 shadow-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
                                                 title="Salin format data admin untuk laporan WhatsApp">
-                                            <i class="fab fa-whatsapp" :class="copied ? 'text-white' : 'text-emerald-600'"></i>
-                                            <span x-text="copied ? 'Tersalin!' : 'Salin Format WA'">Salin Format WA</span>
+                                            <i class="fab fa-whatsapp text-emerald-600"></i>
+                                            <span data-copy-wa-label>Salin Format WA</span>
                                         </button>
                                     </div>
                                 </div>
@@ -599,7 +594,7 @@ $setting = $account->alertSetting ?? $globalSetting;
     </div>
 
     {{-- TAB 2: TREN FOLLOWERS (TAMBAHAN) --}}
-    <div x-show="tab==='trend'" x-cloak class="mt-4">
+    <div data-account-tab-panel="trend" class="hidden mt-4">
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
             {{-- Chart --}}
             <div class="xl:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-5">
@@ -667,7 +662,7 @@ $setting = $account->alertSetting ?? $globalSetting;
     </div>
 
     {{-- TAB 3: ALERT --}}
-    <div x-show="tab==='alerts'" x-cloak class="mt-4">
+    <div data-account-tab-panel="alerts" class="hidden mt-4">
         <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
             {{-- Recent alerts --}}
             <div class="xl:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-5">
@@ -761,7 +756,7 @@ $setting = $account->alertSetting ?? $globalSetting;
     </div>
 
     {{-- TAB 4: RIWAYAT & LOG --}}
-    <div x-show="tab==='info'" x-cloak class="mt-4">
+    <div data-account-tab-panel="info" class="hidden mt-4">
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
             <h3 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <i class="fas fa-history text-purple-500"></i> Riwayat Perubahan Data Akun
@@ -911,5 +906,49 @@ new Chart(document.getElementById('trendChart'), {
     }
 });
 @endif
+
+(function initAccountShowUI() {
+    var btns = document.querySelectorAll('[data-account-tab-btn]');
+    var panels = document.querySelectorAll('[data-account-tab-panel]');
+    function switchTab(target) {
+        btns.forEach(function (b) {
+            var active = b.getAttribute('data-account-tab-btn') === target;
+            b.setAttribute('aria-selected', active ? 'true' : 'false');
+            b.classList.toggle('bg-indigo-600', active);
+            b.classList.toggle('text-white', active);
+            b.classList.toggle('shadow', active);
+            b.classList.toggle('text-gray-500', !active);
+            b.classList.toggle('hover:text-gray-700', !active);
+        });
+        panels.forEach(function (p) {
+            var active = p.getAttribute('data-account-tab-panel') === target;
+            p.classList.toggle('hidden', !active);
+        });
+        window.dispatchEvent(new Event('resize'));
+    }
+    btns.forEach(function (b) {
+        b.addEventListener('click', function () {
+            switchTab(b.getAttribute('data-account-tab-btn'));
+        });
+    });
+
+    document.querySelectorAll('[data-copy-wa-btn]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var txt = btn.getAttribute('data-wa-text') || '';
+            var label = btn.querySelector('[data-copy-wa-label]');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(txt).catch(function () {});
+            }
+            btn.classList.remove('bg-emerald-50', 'text-emerald-700', 'hover:bg-emerald-100', 'border', 'border-emerald-200');
+            btn.classList.add('bg-emerald-600', 'text-white');
+            if (label) label.textContent = 'Tersalin!';
+            setTimeout(function () {
+                btn.classList.remove('bg-emerald-600', 'text-white');
+                btn.classList.add('bg-emerald-50', 'text-emerald-700', 'hover:bg-emerald-100', 'border', 'border-emerald-200');
+                if (label) label.textContent = 'Salin Format WA';
+            }, 2000);
+        });
+    });
+})();
 </script>
 @endpush

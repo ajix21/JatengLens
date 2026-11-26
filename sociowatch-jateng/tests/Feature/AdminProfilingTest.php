@@ -237,11 +237,11 @@ class AdminProfilingTest extends TestCase
         $user = User::factory()->create(['role' => 'superadmin', 'is_active' => true]);
         $account = SocialAccount::factory()->create();
 
-        // 1. Halaman edit akun menampilkan area drag & drop foto admin
+        // 1. Halaman edit akun memuat modul admin-subform CSP-safe & tombol Tambah Admin
         $this->actingAs($user)->get(route('accounts.edit', $account))
             ->assertOk()
-            ->assertSee('Foto Admin')
-            ->assertSee('drag &amp; drop', false);
+            ->assertSee('adminSubFormList')
+            ->assertSee('admin-subform.js');
 
         // 2. Upload foto admin lewat form Edit Akun
         $photo1 = UploadedFile::fake()->image('pengelola1.jpg', 180, 180);
