@@ -6,41 +6,26 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'SocioWatch Jateng')</title>
 
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        navy:  { 950:'#0a0f1e', 900:'#0d1424', 800:'#111827', 700:'#1a2540', 600:'#1e2d4d', 500:'#243660' },
-                        brand: { DEFAULT:'#4F46E5', dark:'#3730A3', light:'#818CF8', glow:'rgba(79,70,229,0.25)' }
-                    },
-                    boxShadow: {
-                        'brand-glow': '0 0 20px rgba(79,70,229,0.35)',
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Tailwind CSS (Self-hosted compiled CSS for strict CSP) -->
+    <link rel="stylesheet" href="{{ asset('vendor/tailwind.min.css') }}">
 
-    <!-- Font Awesome 6 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <!-- Font Awesome 6 (Self-hosted) -->
+    <link rel="stylesheet" href="{{ asset('vendor/fontawesome/css/all.min.css') }}">
 
-    <!-- Leaflet -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+    <!-- Leaflet (Self-hosted) -->
+    <link rel="stylesheet" href="{{ asset('vendor/leaflet/leaflet.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/leaflet/MarkerCluster.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/leaflet/MarkerCluster.Default.css') }}">
 
-    <!-- Alpine.js -->
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Alpine.js (Self-hosted) -->
+    <script defer src="{{ asset('vendor/alpinejs/alpine.min.js') }}"></script>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <!-- Leaflet JS (Self-hosted) -->
+    <script src="{{ asset('vendor/leaflet/leaflet.js') }}"></script>
+    <script src="{{ asset('vendor/leaflet/leaflet.markercluster.js') }}"></script>
 
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Chart.js (Self-hosted) -->
+    <script src="{{ asset('vendor/chartjs/chart.umd.min.js') }}"></script>
 
     @stack('styles')
 

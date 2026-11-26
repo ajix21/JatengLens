@@ -313,7 +313,9 @@ function adminSubForm(initialAdmins) {
                 return;
             }
             admin.file_name = file.name;
-            admin.preview_url = URL.createObjectURL(file);
+            const reader = new FileReader();
+            reader.onload = (e) => { admin.preview_url = e.target.result; };
+            reader.readAsDataURL(file);
         },
         handlePhoto(event, index) {
             this.applyPhotoFile(event.target.files[0], event.target, index);

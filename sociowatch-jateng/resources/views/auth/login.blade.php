@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login — SocioWatch Jateng</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ asset('vendor/tailwind.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('vendor/fontawesome/css/all.min.css') }}">
     <style>
         body { background: #0a0f1e; }
         .card-glow { box-shadow: 0 0 60px rgba(79,70,229,.2), 0 25px 50px rgba(0,0,0,.5); }

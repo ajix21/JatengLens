@@ -36,7 +36,9 @@
                 return;
             }
             this.fileName = file.name;
-            this.previewUrl = URL.createObjectURL(file);
+            const reader = new FileReader();
+            reader.onload = (e) => { this.previewUrl = e.target.result; };
+            reader.readAsDataURL(file);
         },
         handleFile(event) {
             this.applyFile(event.target.files[0], event.target);
