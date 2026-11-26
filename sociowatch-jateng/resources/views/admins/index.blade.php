@@ -52,10 +52,10 @@
                             @if($admin->photo_url)
                             <a href="{{ $admin->photo_url }}" target="_blank" rel="noopener noreferrer" title="Klik untuk perbesar foto {{ $admin->full_name }}" class="inline-block">
                                 <img src="{{ $admin->photo_url }}" alt="Foto {{ $admin->full_name }}"
-                                     class="w-11 h-11 rounded-lg object-cover border border-gray-200 shadow-xs hover:opacity-90 transition mx-auto">
+                                     class="w-14 h-14 rounded-xl object-cover border border-gray-200 shadow-xs hover:opacity-90 transition mx-auto">
                             </a>
                             @else
-                            <div class="w-11 h-11 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-500 font-bold text-sm mx-auto" title="Belum ada foto">
+                            <div class="w-14 h-14 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-500 font-bold text-base mx-auto" title="Belum ada foto">
                                 {{ strtoupper(substr($admin->full_name, 0, 1)) }}
                             </div>
                             @endif

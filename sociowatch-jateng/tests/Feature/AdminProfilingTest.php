@@ -230,4 +230,78 @@ class AdminProfilingTest extends TestCase
         $storedContent = Storage::disk('public')->get($admin->photo);
         $this->assertStringNotContainsString($marker, $storedContent);
     }
+
+    public function test_account_edit_form_supports_secure_admin_photo_upload_and_preserves_photo(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create(['role' => 'superadmin', 'is_active' => true]);
+        $account = SocialAccount::factory()->create();
+
+        // 1. Halaman edit akun menampilkan area drag & drop foto admin
+        $this->actingAs($user)->get(route('accounts.edit', $account))
+            ->assertOk()
+            ->assertSee('Foto Admin')
+            ->assertSee('drag &amp; drop', false);
+
+        // 2. Upload foto admin lewat form Edit Akun
+        $photo1 = UploadedFile::fake()->image('pengelola1.jpg', 180, 180);
+        $this->actingAs($user)->put(route('accounts.update', $account), [
+            'platform'     => $account->platform,
+            'username'     => $account->username,
+            'display_name' => $account->display_name,
+            'category_id'  => $account->category_id,
+            'region_id'    => $account->region_id,
+            'admins'       => [
+                [
+                    'full_name' => 'Pengelola Pertama',
+                    'photo'     => $photo1,
+                ],
+            ],
+        ])->assertRedirect(route('accounts.show', $account));
+
+        $admin = $account->admins()->firstOrFail();
+        $this->assertNotNull($admin->photo);
+        Storage::disk('public')->assertExists($admin->photo);
+        $savedPhoto = $admin->photo;
+
+        // 3. Edit akun lagi tanpa upload foto baru -> foto lama tetap tersimpan
+        $this->actingAs($user)->put(route('accounts.update', $account), [
+            'platform'     => $account->platform,
+            'username'     => $account->username,
+            'display_name' => $account->display_name,
+            'category_id'  => $account->category_id,
+            'region_id'    => $account->region_id,
+            'admins'       => [
+                [
+                    'id'        => $admin->id,
+                    'full_name' => 'Pengelola Pertama Diedit',
+                ],
+            ],
+        ])->assertRedirect(route('accounts.show', $account));
+
+        $admin->refresh();
+        $this->assertSame('Pengelola Pertama Diedit', $admin->full_name);
+        $this->assertSame($savedPhoto, $admin->photo);
+        Storage::disk('public')->assertExists($savedPhoto);
+
+        // 4. Hapus foto via checkbox remove_photo di Edit Akun
+        $this->actingAs($user)->put(route('accounts.update', $account), [
+            'platform'     => $account->platform,
+            'username'     => $account->username,
+            'display_name' => $account->display_name,
+            'category_id'  => $account->category_id,
+            'region_id'    => $account->region_id,
+            'admins'       => [
+                [
+                    'id'           => $admin->id,
+                    'full_name'    => 'Pengelola Pertama Diedit',
+                    'remove_photo' => '1',
+                ],
+            ],
+        ])->assertRedirect(route('accounts.show', $account));
+
+        $admin->refresh();
+        $this->assertNull($admin->photo);
+        Storage::disk('public')->assertMissing($savedPhoto);
+    }
 }

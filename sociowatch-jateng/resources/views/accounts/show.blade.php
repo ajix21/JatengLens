@@ -171,19 +171,32 @@ $setting = $account->alertSetting ?? $globalSetting;
                         $waReport = $admin->toWhatsAppText();
                     @endphp
                     <div x-data="{ copied: false, text: @js($waReport) }"
-                         class="p-4 rounded-xl border border-gray-200 bg-slate-50/70 hover:bg-slate-50 transition mb-3">
-                        <div class="flex items-start gap-4">
-                            @if($admin->photo_url)
-                            <a href="{{ $admin->photo_url }}" target="_blank" rel="noopener noreferrer" title="Perbesar foto {{ $admin->full_name }}" class="flex-shrink-0">
-                                <img src="{{ $admin->photo_url }}" alt="Foto {{ $admin->full_name }}"
-                                     class="w-12 h-12 rounded-xl object-cover border border-gray-200 shadow-sm hover:opacity-90 transition">
-                            </a>
-                            @else
-                            <div class="w-12 h-12 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-lg flex-shrink-0 shadow-sm">
-                                {{ strtoupper(substr($admin->full_name, 0, 1)) }}
+                         class="rounded-xl border border-gray-200 bg-slate-50/70 hover:bg-slate-50 transition mb-4 overflow-hidden shadow-xs">
+                        <div class="flex flex-col md:flex-row items-stretch">
+                            {{-- KIRI: FULL GAMBAR FOTO ADMIN --}}
+                            <div class="w-full md:w-52 lg:w-60 flex-shrink-0 bg-slate-200/60 border-b md:border-b-0 md:border-r border-gray-200 relative min-h-[220px] md:min-h-[260px]">
+                                @if($admin->photo_url)
+                                <a href="{{ $admin->photo_url }}" target="_blank" rel="noopener noreferrer"
+                                   title="Klik untuk perbesar foto {{ $admin->full_name }}"
+                                   class="block w-full h-full group relative overflow-hidden">
+                                    <img src="{{ $admin->photo_url }}" alt="Foto {{ $admin->full_name }}"
+                                         class="w-full h-64 md:h-full object-cover object-center group-hover:scale-[1.02] transition duration-300">
+                                    <span class="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-medium px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition flex items-center gap-1 backdrop-blur-xs">
+                                        <i class="fas fa-expand-alt"></i> Perbesar
+                                    </span>
+                                </a>
+                                @else
+                                <div class="w-full h-56 md:h-full bg-gradient-to-br from-indigo-50 to-slate-100 flex flex-col items-center justify-center p-4 text-center">
+                                    <div class="w-20 h-20 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-3xl shadow-sm mb-2">
+                                        {{ strtoupper(substr($admin->full_name, 0, 1)) }}
+                                    </div>
+                                    <span class="text-[11px] text-gray-400 font-medium">Belum ada foto</span>
+                                </div>
+                                @endif
                             </div>
-                            @endif
-                            <div class="flex-1 min-w-0">
+
+                            {{-- KANAN: FULL DATA DIRI --}}
+                            <div class="flex-1 min-w-0 p-4 md:p-5">
                                 <div class="flex flex-wrap items-center justify-between gap-2 mb-2 pb-2 border-b border-gray-100">
                                     <div>
                                         <h4 class="font-bold text-gray-900 text-sm inline-block">{{ $admin->full_name }}</h4>

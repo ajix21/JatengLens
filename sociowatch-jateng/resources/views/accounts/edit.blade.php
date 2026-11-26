@@ -7,6 +7,10 @@
 @section('content')
 @php
 $existingAdmins = $account->admins->map(fn($a) => [
+    'id'          => $a->id,
+    'photo_url'   => $a->photo_url,
+    'preview_url' => $a->photo_url,
+    'photo_error' => null,
     'full_name'   => $a->full_name,
     'alias'       => $a->alias,
     'nik'         => $a->nik,
@@ -22,12 +26,22 @@ $existingAdmins = $account->admins->map(fn($a) => [
     'notes'       => $a->notes,
 ])->toArray();
 if (empty($existingAdmins)) {
-    $existingAdmins = [['full_name'=>'','alias'=>'','nik'=>'','no_kk'=>'','status'=>'','agama'=>'','ttl'=>'','occupation'=>'','alamat'=>'','phone'=>'','email'=>'','affiliation'=>'','notes'=>'']];
+    $existingAdmins = [['id'=>null,'photo_url'=>null,'preview_url'=>null,'photo_error'=>null,'full_name'=>'','alias'=>'','nik'=>'','no_kk'=>'','status'=>'','agama'=>'','ttl'=>'','occupation'=>'','alamat'=>'','phone'=>'','email'=>'','affiliation'=>'','notes'=>'']];
 }
 @endphp
-<form method="POST" action="{{ route('accounts.update', $account) }}" x-data="adminSubForm(@js(old('admins', $existingAdmins)))">
+<form method="POST" action="{{ route('accounts.update', $account) }}" enctype="multipart/form-data" x-data="adminSubForm(@js(old('admins', $existingAdmins)))">
 @csrf @method('PUT')
 <div class="max-w-4xl space-y-6">
+    @if($errors->any())
+    <div role="alert" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+        <p class="font-semibold mb-1 flex items-center gap-1.5"><i class="fas fa-exclamation-circle"></i> Terdapat beberapa kesalahan pengisian:</p>
+        <ul class="list-disc list-inside space-y-0.5 text-xs">
+            @foreach($errors->all() as $error)
+            <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+    </div>
+    @endif
 
     @if($errors->any())
     <div role="alert" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
@@ -157,7 +171,45 @@ if (empty($existingAdmins)) {
                     <i class="fas fa-times"></i>
                 </button>
                 <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Admin #<span x-text="index + 1"></span></p>
+                <input type="hidden" :name="`admins[${index}][id]`" :value="admin.id || ''">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-medium text-gray-500 mb-1.5">Foto Admin</label>
+                        <div class="flex items-start gap-3">
+                            <div class="w-16 h-16 rounded-xl border border-gray-200 bg-white flex items-center justify-center overflow-hidden flex-shrink-0 shadow-xs">
+                                <template x-if="admin.preview_url || admin.photo_url">
+                                    <img :src="admin.preview_url || admin.photo_url" alt="Preview foto admin" class="w-full h-full object-cover">
+                                </template>
+                                <template x-if="!(admin.preview_url || admin.photo_url)">
+                                    <i class="fas fa-user text-gray-300 text-xl"></i>
+                                </template>
+                            </div>
+                            <div class="flex-1 space-y-1.5">
+                                <div @dragover.prevent="admin.is_dragging = true"
+                                     @dragleave.prevent="admin.is_dragging = false"
+                                     @drop.prevent="handleDrop($event, index)"
+                                     @click="$el.querySelector('input[type=file]').click()"
+                                     :class="admin.is_dragging ? 'border-indigo-500 bg-indigo-50/70' : 'border-gray-300 bg-white hover:border-indigo-400 hover:bg-indigo-50/30'"
+                                     class="border-2 border-dashed rounded-xl px-4 py-3 text-center cursor-pointer transition">
+                                    <input type="file" :name="`admins[${index}][photo]`" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                           @change="handlePhoto($event, index)"
+                                           class="hidden">
+                                    <div class="flex items-center justify-center gap-2 text-xs text-gray-600">
+                                        <i class="fas fa-cloud-upload-alt text-indigo-500 text-base"></i>
+                                        <span><span class="font-semibold text-indigo-600">Klik untuk pilih</span> atau <strong>drag &amp; drop</strong> foto di sini</span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-400 mt-0.5" x-text="admin.file_name ? ('File terpilih: ' + admin.file_name) : 'JPG, PNG, atau WEBP • Maks. 2 MB (otomatis disanitasi)'"></p>
+                                </div>
+                                <p x-show="admin.photo_error" x-text="admin.photo_error" class="text-red-500 text-xs"></p>
+                                <template x-if="admin.photo_url">
+                                    <label class="inline-flex items-center gap-1.5 text-xs text-red-600 cursor-pointer">
+                                        <input type="checkbox" :name="`admins[${index}][remove_photo]`" value="1" class="rounded border-gray-300 text-red-600 focus:ring-red-400">
+                                        <span>Hapus foto saat ini</span>
+                                    </label>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
                     <div class="md:col-span-2">
                         <label class="block text-xs font-medium text-gray-500 mb-1">Nama Lengkap <span class="text-red-500">*</span></label>
                         <input type="text" :name="`admins[${index}][full_name]`" x-model="admin.full_name" required class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-300 focus:outline-none bg-white">
@@ -231,9 +283,44 @@ if (empty($existingAdmins)) {
 <script>
 function adminSubForm(initialAdmins) {
     return {
-        admins: initialAdmins,
-        addAdmin() { this.admins.push({ full_name:'', alias:'', nik:'', no_kk:'', status:'', agama:'', ttl:'', occupation:'', alamat:'', phone:'', email:'', affiliation:'', notes:'' }); },
-        removeAdmin(index) { this.admins.splice(index, 1); }
+        admins: initialAdmins.map(a => ({ id: null, photo_url: null, preview_url: a.photo_url || null, photo_error: null, is_dragging: false, file_name: null, ...a })),
+        addAdmin() { this.admins.push({ id:null, photo_url:null, preview_url:null, photo_error:null, is_dragging:false, file_name:null, full_name:'', alias:'', nik:'', no_kk:'', status:'', agama:'', ttl:'', occupation:'', alamat:'', phone:'', email:'', affiliation:'', notes:'' }); },
+        removeAdmin(index) { this.admins.splice(index, 1); },
+        applyPhotoFile(file, inputEl, index) {
+            const admin = this.admins[index];
+            admin.photo_error = null;
+            if (!file) { admin.preview_url = admin.photo_url || null; admin.file_name = null; return; }
+            const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+            if (!allowed.includes(file.type)) {
+                admin.photo_error = 'Hanya file gambar JPG, PNG, atau WEBP yang diizinkan.';
+                if (inputEl) inputEl.value = '';
+                admin.preview_url = admin.photo_url || null;
+                admin.file_name = null;
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                admin.photo_error = 'Ukuran foto melebihi batas maksimal 2 MB.';
+                if (inputEl) inputEl.value = '';
+                admin.preview_url = admin.photo_url || null;
+                admin.file_name = null;
+                return;
+            }
+            admin.file_name = file.name;
+            admin.preview_url = URL.createObjectURL(file);
+        },
+        handlePhoto(event, index) {
+            this.applyPhotoFile(event.target.files[0], event.target, index);
+        },
+        handleDrop(event, index) {
+            this.admins[index].is_dragging = false;
+            const file = event.dataTransfer?.files?.[0];
+            const inputEl = event.currentTarget.querySelector('input[type=file]');
+            if (!file || !inputEl) return;
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            inputEl.files = dt.files;
+            this.applyPhotoFile(file, inputEl, index);
+        }
     };
 }
 </script>

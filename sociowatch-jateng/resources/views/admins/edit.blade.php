@@ -16,28 +16,45 @@
         originalUrl: @js($admin->photo_url),
         previewUrl: @js($admin->photo_url),
         clientError: null,
-        handleFile(event) {
+        isDragging: false,
+        fileName: null,
+        applyFile(file, inputEl) {
             this.clientError = null;
-            const file = event.target.files[0];
-            if (!file) { this.previewUrl = this.originalUrl; return; }
+            if (!file) { this.previewUrl = this.originalUrl; this.fileName = null; return; }
             const allowed = ['image/jpeg', 'image/png', 'image/webp'];
             if (!allowed.includes(file.type)) {
                 this.clientError = 'Hanya file gambar JPG, PNG, atau WEBP yang diizinkan.';
-                event.target.value = '';
+                if (inputEl) inputEl.value = '';
                 this.previewUrl = this.originalUrl;
+                this.fileName = null;
                 return;
             }
             if (file.size > 2 * 1024 * 1024) {
                 this.clientError = 'Ukuran foto melebihi batas maksimal 2 MB.';
-                event.target.value = '';
+                if (inputEl) inputEl.value = '';
                 this.previewUrl = this.originalUrl;
+                this.fileName = null;
                 return;
             }
+            this.fileName = file.name;
             this.previewUrl = URL.createObjectURL(file);
+        },
+        handleFile(event) {
+            this.applyFile(event.target.files[0], event.target);
+        },
+        handleDrop(event) {
+            this.isDragging = false;
+            const file = event.dataTransfer?.files?.[0];
+            const inputEl = this.$refs.photoInput;
+            if (!file || !inputEl) return;
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            inputEl.files = dt.files;
+            this.applyFile(file, inputEl);
         }
     }">
-        <label class="block text-sm font-medium text-gray-600 mb-1">Foto Admin</label>
-        <div class="flex items-center gap-4">
+        <label class="block text-sm font-medium text-gray-600 mb-1.5">Foto Admin</label>
+        <div class="flex items-start gap-4">
             <div class="w-16 h-16 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0">
                 <template x-if="previewUrl">
                     <img :src="previewUrl" alt="Preview foto admin" class="w-full h-full object-cover">
@@ -47,10 +64,21 @@
                 </template>
             </div>
             <div class="flex-1 space-y-1.5">
-                <input type="file" name="photo" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                       @change="handleFile($event)"
-                       class="block w-full text-xs text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer">
-                <p class="text-xs text-gray-400">Format JPG, PNG, atau WEBP (maks. 2 MB, otomatis disanitasi ulang). Kosongkan jika tidak ingin mengganti foto.</p>
+                <div @dragover.prevent="isDragging = true"
+                     @dragleave.prevent="isDragging = false"
+                     @drop.prevent="handleDrop($event)"
+                     @click="$refs.photoInput.click()"
+                     :class="isDragging ? 'border-indigo-500 bg-indigo-50/70' : 'border-gray-300 bg-gray-50/50 hover:border-indigo-400 hover:bg-indigo-50/30'"
+                     class="border-2 border-dashed rounded-xl px-4 py-3 text-center cursor-pointer transition">
+                    <input type="file" name="photo" x-ref="photoInput" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                           @change="handleFile($event)"
+                           class="hidden">
+                    <div class="flex items-center justify-center gap-2 text-xs text-gray-600">
+                        <i class="fas fa-cloud-upload-alt text-indigo-500 text-base"></i>
+                        <span><span class="font-semibold text-indigo-600">Klik untuk pilih</span> atau <strong>drag &amp; drop</strong> foto di sini</span>
+                    </div>
+                    <p class="text-[11px] text-gray-400 mt-0.5" x-text="fileName ? ('File terpilih: ' + fileName) : 'JPG, PNG, atau WEBP • Maks. 2 MB (kosongkan jika tidak diganti)'"></p>
+                </div>
                 <p x-show="clientError" x-text="clientError" class="text-red-500 text-xs"></p>
                 @if($admin->photo_url)
                 <label class="inline-flex items-center gap-1.5 text-xs text-red-600 cursor-pointer">

@@ -7,12 +7,19 @@ use App\Enums\FetchStatus;
 use App\Models\Category;
 use App\Models\Region;
 use App\Models\SocialAccount;
+use App\Services\SecureImageUploadService;
 use App\Services\SocialFetch\SocialFetchService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class AccountController extends Controller
 {
     use LogsActivity;
+
+    public function __construct(
+        private readonly SecureImageUploadService $imageUploadService
+    ) {}
+
     private array $platforms = ['instagram', 'twitter', 'facebook', 'tiktok', 'youtube'];
 
     private array $rules = [
@@ -31,7 +38,10 @@ class AccountController extends Controller
         'auto_fetch'      => 'boolean',
         'notes'           => 'nullable|string',
         'admins'                      => 'nullable|array',
+        'admins.*.id'                 => 'nullable|integer',
         'admins.*.full_name'          => 'required_with:admins.*|string|max:255',
+        'admins.*.photo'              => 'nullable|file|image|mimetypes:image/jpeg,image/png,image/webp|mimes:jpg,jpeg,png,webp|max:2048|dimensions:min_width=50,min_height=50,max_width=4096,max_height=4096',
+        'admins.*.remove_photo'       => 'nullable|boolean',
         'admins.*.alias'              => 'nullable|string|max:255',
         'admins.*.nik'                => 'nullable|string|max:20',
         'admins.*.no_kk'              => 'nullable|string|max:20',
@@ -116,10 +126,26 @@ class AccountController extends Controller
         $data['following_count'] = $data['following_count'] ?? 0;
         $data['post_count']      = $data['post_count'] ?? 0;
 
+        // Validasi & sanitasi seluruh foto admin lebih dulu sebelum membuat record akun
+        $uploadedPhotos = [];
+        foreach ($request->input('admins', []) as $index => $adminData) {
+            if (!empty($adminData['full_name']) && $request->hasFile("admins.{$index}.photo")) {
+                $uploadedPhotos[$index] = $this->imageUploadService->storeSafeImage(
+                    $request->file("admins.{$index}.photo"),
+                    'admin-photos',
+                    "admins.{$index}.photo"
+                );
+            }
+        }
+
         $account = SocialAccount::create($data);
 
-        foreach ($request->input('admins', []) as $adminData) {
+        foreach ($request->input('admins', []) as $index => $adminData) {
             if (!empty($adminData['full_name'])) {
+                unset($adminData['id'], $adminData['remove_photo'], $adminData['photo']);
+                if (isset($uploadedPhotos[$index])) {
+                    $adminData['photo'] = $uploadedPhotos[$index];
+                }
                 $account->admins()->create($adminData);
             }
         }
@@ -200,11 +226,60 @@ class AccountController extends Controller
             $data['external_id'] = null;
         }
 
+        // Validasi & sanitasi foto admin baru sebelum mengubah data existing
+        $existingAdmins = $account->admins()->get()->keyBy('id');
+        $uploadedPhotos = [];
+        foreach ($request->input('admins', []) as $index => $adminData) {
+            if (!empty($adminData['full_name']) && $request->hasFile("admins.{$index}.photo")) {
+                $uploadedPhotos[$index] = $this->imageUploadService->storeSafeImage(
+                    $request->file("admins.{$index}.photo"),
+                    'admin-photos',
+                    "admins.{$index}.photo"
+                );
+            }
+        }
+
         $account->update($data);
-        $account->admins()->delete();
-        foreach ($request->input('admins', []) as $adminData) {
-            if (!empty($adminData['full_name'])) {
-                $account->admins()->create($adminData);
+
+        $keptIds = [];
+        foreach ($request->input('admins', []) as $index => $adminData) {
+            if (empty($adminData['full_name'])) {
+                continue;
+            }
+
+            $adminId = !empty($adminData['id']) ? (int) $adminData['id'] : null;
+            $removePhoto = !empty($adminData['remove_photo']);
+            unset($adminData['id'], $adminData['remove_photo'], $adminData['photo']);
+
+            $existing = $adminId ? $existingAdmins->get($adminId) : null;
+            if ($existing) {
+                if (isset($uploadedPhotos[$index])) {
+                    if ($existing->photo) {
+                        Storage::disk('public')->delete($existing->photo);
+                    }
+                    $adminData['photo'] = $uploadedPhotos[$index];
+                } elseif ($removePhoto && $existing->photo) {
+                    Storage::disk('public')->delete($existing->photo);
+                    $adminData['photo'] = null;
+                }
+                $existing->update($adminData);
+                $keptIds[] = $existing->id;
+            } else {
+                if (isset($uploadedPhotos[$index])) {
+                    $adminData['photo'] = $uploadedPhotos[$index];
+                }
+                $created = $account->admins()->create($adminData);
+                $keptIds[] = $created->id;
+            }
+        }
+
+        // Hapus admin yang dibuang dari form beserta file fotonya
+        foreach ($existingAdmins as $existing) {
+            if (!in_array($existing->id, $keptIds, true)) {
+                if ($existing->photo) {
+                    Storage::disk('public')->delete($existing->photo);
+                }
+                $existing->delete();
             }
         }
 
