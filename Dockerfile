@@ -65,7 +65,7 @@ RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoload
 # Copy application source
 COPY sociowatch-jateng/ ./
 RUN composer dump-autoload --optimize --no-dev \
-    && mkdir -p storage/app/public/thumbnails storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache \
+    && mkdir -p storage/app/public/thumbnails storage/app/public/admin-photos storage/framework/cache/data storage/framework/sessions storage/framework/views bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache
 
 # Entrypoint (runs storage:link, optimize, background scheduler, and Apache)

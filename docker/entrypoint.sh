@@ -4,7 +4,7 @@ set -e
 cd /var/www/html
 
 # Ensure writable directories (especially when thumbnails volume is mounted)
-mkdir -p storage/app/public/thumbnails storage/app/public/admin-photos storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache
+mkdir -p storage/app/public/thumbnails storage/app/public/admin-photos storage/framework/cache/data storage/framework/sessions storage/framework/views bootstrap/cache
 
 # Harden admin-photos upload directory against script execution
 cat > storage/app/public/admin-photos/.htaccess << 'EOF'
@@ -21,17 +21,18 @@ Options -Indexes -ExecCGI
 EOF
 
 chown -R www-data:www-data storage bootstrap/cache
+chmod -R 775 storage bootstrap/cache
 
 # Ensure public/storage symlink exists
 if [ ! -L public/storage ]; then
     php artisan storage:link --force || true
 fi
 
-# Refresh Laravel caches for fast low-RAM execution
-php artisan config:clear || true
-php artisan config:cache || true
-php artisan route:cache || true
-php artisan view:cache || true
+# Refresh Laravel caches as www-data so cache/view files are never owned by root
+su -s /bin/bash www-data -c "php /var/www/html/artisan config:clear || true"
+su -s /bin/bash www-data -c "php /var/www/html/artisan config:cache || true"
+su -s /bin/bash www-data -c "php /var/www/html/artisan route:cache || true"
+su -s /bin/bash www-data -c "php /var/www/html/artisan view:cache || true"
 
 # Start Laravel Scheduler in background (runs 08:00/08:15/08:20 & 20:00/20:15/20:20 WIB)
 if [ "${RUN_SCHEDULER:-true}" = "true" ]; then
